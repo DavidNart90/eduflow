@@ -1,4 +1,33 @@
+'use client';
+
+import { useState } from 'react';
+
 export default function Home() {
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const [isTesting, setIsTesting] = useState(false);
+
+  const testConnection = async () => {
+    setIsTesting(true);
+    setConnectionStatus('Testing connection...');
+
+    try {
+      const response = await fetch('/api/test-connection');
+      const result = await response.json();
+
+      if (result.success) {
+        setConnectionStatus('✅ Database connection successful!');
+      } else {
+        setConnectionStatus(`❌ Connection failed: ${result.error}`);
+      }
+    } catch (error) {
+      setConnectionStatus(
+        `❌ Error testing connection: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   return (
     <main className='min-h-screen bg-background'>
       <div className='container mx-auto px-4 py-8'>
@@ -11,6 +40,27 @@ export default function Home() {
             <p className='text-xl text-secondary-600'>
               Teachers&apos; Savings Management System
             </p>
+          </div>
+
+          {/* Database Connection Test */}
+          <div className='mb-12 p-6 bg-white rounded-lg shadow-soft border border-secondary-200'>
+            <h2 className='text-2xl font-semibold text-foreground mb-4'>
+              Database Connection Test
+            </h2>
+            <div className='space-y-4'>
+              <button
+                onClick={testConnection}
+                disabled={isTesting}
+                className='px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50'
+              >
+                {isTesting ? 'Testing...' : 'Test Database Connection'}
+              </button>
+              {connectionStatus && (
+                <div className='p-4 rounded-lg bg-secondary-50 border border-secondary-200'>
+                  <p className='text-sm'>{connectionStatus}</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Design System Test */}

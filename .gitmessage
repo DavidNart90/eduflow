@@ -1,0 +1,29 @@
+# <type>(<scope>): <description>
+# 
+# <body>
+# 
+# <footer>
+# 
+# Types:
+# feat: New feature
+# fix: Bug fix
+# docs: Documentation changes
+# style: Code style changes (formatting, etc.)
+# refactor: Code refactoring
+# test: Adding or updating tests
+# chore: Maintenance tasks
+# 
+# Scopes:
+# auth: Authentication related
+# dashboard: Dashboard components
+# payment: Payment integration
+# admin: Admin features
+# api: API routes
+# db: Database changes
+# ui: UI components
+# config: Configuration changes
+# 
+# Examples:
+# feat(dashboard): add teacher balance summary card
+# fix(auth): resolve login validation error
+# docs: update API documentation 
