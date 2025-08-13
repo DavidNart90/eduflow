@@ -196,3 +196,5 @@ SUPABASE_SETUP.md
 .env.local.example
 .env.example.local
 
+clear_all_data.sql
+.*clear_all_data.sql
