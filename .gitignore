@@ -180,3 +180,5 @@ SUPABASE_SETUP.md
 *.PROJECT_STATUS.md
 *.SUPABASE_SETUP.md
 
+clear_all_data.sql
+.*clear_all_data.sql
