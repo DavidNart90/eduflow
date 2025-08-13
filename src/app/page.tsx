@@ -1,216 +1,189 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { PublicRoute } from '@/components/ProtectedRoute';
+import { ThemeToggle } from '@/components/ui';
 
 export default function Home() {
-  const [connectionStatus, setConnectionStatus] = useState<string>('');
-  const [isTesting, setIsTesting] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  const testConnection = async () => {
-    setIsTesting(true);
-    setConnectionStatus('Testing connection...');
-
-    try {
-      const response = await fetch('/api/test-connection');
-      const result = await response.json();
-
-      if (result.success) {
-        setConnectionStatus('✅ Database connection successful!');
+  useEffect(() => {
+    if (!loading && user) {
+      // Redirect authenticated users to their appropriate dashboard
+      if (user.role === 'teacher') {
+        router.push('/teacher/dashboard');
+      } else if (user.role === 'admin') {
+        router.push('/admin/dashboard');
       } else {
-        setConnectionStatus(`❌ Connection failed: ${result.error}`);
+        router.push('/dashboard');
       }
-    } catch (error) {
-      setConnectionStatus(
-        `❌ Error testing connection: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    } finally {
-      setIsTesting(false);
     }
-  };
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center theme-transition'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
+          <p className='mt-4 text-muted-foreground'>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main className='min-h-screen bg-background'>
-      <div className='container mx-auto px-4 py-8'>
-        <div className='max-w-4xl mx-auto'>
-          {/* Header */}
-          <div className='text-center mb-12'>
-            <h1 className='text-4xl font-bold text-primary-500 mb-4'>
-              EduFlow
-            </h1>
-            <p className='text-xl text-secondary-600'>
-              Teachers&apos; Savings Management System
-            </p>
-          </div>
+    <PublicRoute>
+      <main className='min-h-screen theme-transition'>
+        {/* Header with Theme Toggle */}
+        <header className='absolute top-0 right-0 p-6 z-10'>
+          <ThemeToggle size='lg' />
+        </header>
 
-          {/* Database Connection Test */}
-          <div className='mb-12 p-6 bg-white rounded-lg shadow-soft border border-secondary-200'>
-            <h2 className='text-2xl font-semibold text-foreground mb-4'>
-              Database Connection Test
-            </h2>
-            <div className='space-y-4'>
-              <button
-                onClick={testConnection}
-                disabled={isTesting}
-                className='px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50'
-              >
-                {isTesting ? 'Testing...' : 'Test Database Connection'}
-              </button>
-              {connectionStatus && (
-                <div className='p-4 rounded-lg bg-secondary-50 border border-secondary-200'>
-                  <p className='text-sm'>{connectionStatus}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Design System Test */}
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12'>
-            {/* Primary Colors */}
-            <div className='space-y-4'>
-              <h3 className='text-lg font-semibold text-foreground'>
-                Primary Colors
-              </h3>
-              <div className='space-y-2'>
-                <div className='h-12 bg-primary-500 rounded-lg flex items-center justify-center text-white font-medium'>
-                  Primary 500
-                </div>
-                <div className='h-8 bg-primary-400 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Primary 400
-                </div>
-                <div className='h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Primary 600
-                </div>
+        <div className='container mx-auto px-4 py-8'>
+          <div className='max-w-4xl mx-auto text-center'>
+            {/* Header */}
+            <div className='mb-12'>
+              <div className='mx-auto h-24 w-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mb-6 shadow-lg'>
+                <span className='text-4xl font-bold text-white'>EF</span>
               </div>
-            </div>
-
-            {/* Success Colors */}
-            <div className='space-y-4'>
-              <h3 className='text-lg font-semibold text-foreground'>
-                Success Colors
-              </h3>
-              <div className='space-y-2'>
-                <div className='h-12 bg-success-500 rounded-lg flex items-center justify-center text-white font-medium'>
-                  Success 500
-                </div>
-                <div className='h-8 bg-success-400 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Success 400
-                </div>
-                <div className='h-8 bg-success-600 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Success 600
-                </div>
-              </div>
-            </div>
-
-            {/* Warning Colors */}
-            <div className='space-y-4'>
-              <h3 className='text-lg font-semibold text-foreground'>
-                Warning Colors
-              </h3>
-              <div className='space-y-2'>
-                <div className='h-12 bg-warning-500 rounded-lg flex items-center justify-center text-white font-medium'>
-                  Warning 500
-                </div>
-                <div className='h-8 bg-warning-400 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Warning 400
-                </div>
-                <div className='h-8 bg-warning-600 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Warning 600
-                </div>
-              </div>
-            </div>
-
-            {/* Error Colors */}
-            <div className='space-y-4'>
-              <h3 className='text-lg font-semibold text-foreground'>
-                Error Colors
-              </h3>
-              <div className='space-y-2'>
-                <div className='h-12 bg-error-500 rounded-lg flex items-center justify-center text-white font-medium'>
-                  Error 500
-                </div>
-                <div className='h-8 bg-error-400 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Error 400
-                </div>
-                <div className='h-8 bg-error-600 rounded-lg flex items-center justify-center text-white text-sm'>
-                  Error 600
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Typography Test */}
-          <div className='space-y-6 mb-12'>
-            <h2 className='text-2xl font-semibold text-foreground'>
-              Typography
-            </h2>
-            <div className='space-y-4'>
-              <h1 className='text-4xl font-bold text-foreground'>
-                Heading 1 - 4xl
+              <h1 className='text-5xl font-bold gradient-text mb-4'>
+                Welcome to EduFlow
               </h1>
-              <h2 className='text-3xl font-semibold text-foreground'>
-                Heading 2 - 3xl
-              </h2>
-              <h3 className='text-2xl font-semibold text-foreground'>
-                Heading 3 - 2xl
-              </h3>
-              <h4 className='text-xl font-semibold text-foreground'>
-                Heading 4 - xl
-              </h4>
-              <p className='text-base text-secondary-600'>
-                Body text - This is a sample paragraph to test the Inter font
-                family and line height.
+              <p className='text-xl text-muted-foreground mb-8'>
+                Teachers&apos; Savings Association Management System
               </p>
-              <p className='text-sm text-secondary-500'>
-                Small text - This is smaller text for captions and secondary
-                information.
-              </p>
+              <div className='flex justify-center space-x-4'>
+                <a
+                  href='/auth/login'
+                  className='px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-md hover:shadow-lg'
+                >
+                  Sign In
+                </a>
+                <a
+                  href='/auth/forgot-password'
+                  className='px-8 py-3 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium shadow-md hover:shadow-lg'
+                >
+                  Forgot Password
+                </a>
+              </div>
             </div>
-          </div>
 
-          {/* Component Examples */}
-          <div className='space-y-6'>
-            <h2 className='text-2xl font-semibold text-foreground'>
-              Component Examples
-            </h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              {/* Buttons */}
-              <div className='space-y-4'>
-                <h3 className='text-lg font-semibold text-foreground'>
-                  Buttons
-                </h3>
-                <div className='space-y-3'>
-                  <button className='px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors'>
-                    Primary Button
-                  </button>
-                  <button className='px-6 py-3 bg-success-500 text-white rounded-lg font-medium hover:bg-success-600 transition-colors'>
-                    Success Button
-                  </button>
-                  <button className='px-6 py-3 border border-secondary-300 text-foreground rounded-lg font-medium hover:bg-secondary-50 transition-colors'>
-                    Secondary Button
-                  </button>
+            {/* Features */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-8 mb-12'>
+              <div className='bg-card text-card-foreground rounded-lg shadow-lg p-6 border border-border hover:shadow-xl transition-shadow'>
+                <div className='w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4'>
+                  <svg
+                    className='w-6 h-6 text-primary'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
+                    />
+                  </svg>
                 </div>
+                <h3 className='text-lg font-semibold mb-2'>
+                  Savings Management
+                </h3>
+                <p className='text-muted-foreground'>
+                  Teachers can track their savings, make contributions, and view
+                  detailed statements.
+                </p>
               </div>
 
-              {/* Cards */}
-              <div className='space-y-4'>
-                <h3 className='text-lg font-semibold text-foreground'>Cards</h3>
-                <div className='p-6 bg-white rounded-lg shadow-soft border border-secondary-200'>
-                  <h4 className='text-lg font-semibold text-foreground mb-2'>
-                    Card Title
-                  </h4>
-                  <p className='text-secondary-600 mb-4'>
-                    This is a sample card component with soft shadow and rounded
-                    corners.
-                  </p>
-                  <button className='px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors'>
-                    Action
-                  </button>
+              <div className='bg-card text-card-foreground rounded-lg shadow-lg p-6 border border-border hover:shadow-xl transition-shadow'>
+                <div className='w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4'>
+                  <svg
+                    className='w-6 h-6 text-primary'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                    />
+                  </svg>
+                </div>
+                <h3 className='text-lg font-semibold mb-2'>
+                  Mobile Money Integration
+                </h3>
+                <p className='text-muted-foreground'>
+                  Seamless mobile money payments for easy contributions and
+                  withdrawals.
+                </p>
+              </div>
+
+              <div className='bg-card text-card-foreground rounded-lg shadow-lg p-6 border border-border hover:shadow-xl transition-shadow'>
+                <div className='w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4'>
+                  <svg
+                    className='w-6 h-6 text-primary'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+                    />
+                  </svg>
+                </div>
+                <h3 className='text-lg font-semibold mb-2'>
+                  Automated Reports
+                </h3>
+                <p className='text-muted-foreground'>
+                  Generate monthly statements and quarterly reports
+                  automatically for all members.
+                </p>
+              </div>
+            </div>
+
+            {/* About Section */}
+            <div className='bg-card text-card-foreground rounded-lg shadow-lg p-8 border border-border'>
+              <h2 className='text-2xl font-bold mb-4'>About EduFlow</h2>
+              <p className='text-muted-foreground mb-4'>
+                EduFlow is a comprehensive Progressive Web App designed
+                specifically for the New Juaben Teachers&apos; Savings
+                Association. Our platform provides teachers with easy access to
+                their savings information, mobile money integration for
+                contributions, and automated reporting for better financial
+                management.
+              </p>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>
+                <div>
+                  <h3 className='font-semibold mb-2'>For Teachers</h3>
+                  <ul className='text-sm text-muted-foreground space-y-1'>
+                    <li>• View real-time savings balance</li>
+                    <li>• Make mobile money contributions</li>
+                    <li>• Download monthly statements</li>
+                    <li>• Track transaction history</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className='font-semibold mb-2'>For Administrators</h3>
+                  <ul className='text-sm text-muted-foreground space-y-1'>
+                    <li>• Upload controller reports</li>
+                    <li>• Generate quarterly statements</li>
+                    <li>• Manage teacher accounts</li>
+                    <li>• Monitor system analytics</li>
+                  </ul>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </PublicRoute>
   );
 }

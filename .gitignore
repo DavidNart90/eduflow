@@ -165,3 +165,18 @@ storybook-static/
 
 # Husky
 .husky/_
+
+*storybook.log
+
+# Unnecessary development files
+DEVELOPMENT.md 
+GIT_WORKFLOW.md
+PROJECT_STATUS.md
+SUPABASE_SETUP.md
+
+# Any similar development documentation files
+*.DEVELOPMENT.md
+*.GIT_WORKFLOW.md
+*.PROJECT_STATUS.md
+*.SUPABASE_SETUP.md
+

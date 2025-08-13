@@ -22,26 +22,41 @@
     ]
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@heroicons/react": "^2.2.0",
+    "@mui/icons-material": "^7.3.1",
+    "@mui/material": "^7.3.1",
     "@supabase/supabase-js": "^2.53.0",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
     "next": "15.4.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-loading-skeleton": "^3.5.0",
+    "tailwind-merge": "^3.3.1",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/browser": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
+    "playwright": "^1.54.2",
+    "postcss": "^8.5.6",
     "prettier": "^3.6.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwind-scrollbar": "^3.1.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

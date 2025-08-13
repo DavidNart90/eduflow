@@ -168,6 +168,92 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Row Level Security (RLS) Policies
+
+-- Enable RLS on all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE savings_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE controller_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users policies - Allow users to view their own profile by email
+CREATE POLICY "Users can view their own profile" ON users
+  FOR SELECT USING (email = auth.jwt() ->> 'email');
+
+-- Allow admins to view all users
+CREATE POLICY "Admins can view all users" ON users
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
+-- Allow admins to insert users
+CREATE POLICY "Admins can insert users" ON users
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
+-- Allow users to update their own profile
+CREATE POLICY "Users can update their own profile" ON users
+  FOR UPDATE USING (email = auth.jwt() ->> 'email');
+
+-- Transactions policies - Allow users to view their own transactions
+CREATE POLICY "Users can view their own transactions" ON savings_transactions
+  FOR SELECT USING (
+    user_id IN (
+      SELECT id FROM users WHERE email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Allow admins to view all transactions
+CREATE POLICY "Admins can view all transactions" ON savings_transactions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
+-- Allow admins to insert transactions
+CREATE POLICY "Admins can insert transactions" ON savings_transactions
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
+-- Reports policies - Allow admins to manage reports
+CREATE POLICY "Admins can manage reports" ON controller_reports
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
+-- Notifications policies - Allow users to view their own notifications
+CREATE POLICY "Users can view their own notifications" ON email_notifications
+  FOR SELECT USING (
+    user_id IN (
+      SELECT id FROM users WHERE email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Allow admins to manage notifications
+CREATE POLICY "Admins can manage notifications" ON email_notifications
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE email = auth.jwt() ->> 'email' AND role = 'admin'
+    )
+  );
+
 -- Insert sample admin user
 INSERT INTO users (employee_id, email, full_name, role, management_unit) 
 VALUES ('ADMIN001', 'admin@eduflow.com', 'System Administrator', 'admin', 'System')

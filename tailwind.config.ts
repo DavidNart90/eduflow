@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindScrollbar from 'tailwind-scrollbar';
 
 const config: Config = {
   content: [
@@ -7,6 +8,90 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    screens: {
+      // Extra small devices (portrait phones, less than 576px)
+      xs: '475px',
+
+      // Small devices (landscape phones, 576px and up)
+      sm: '640px',
+
+      // Medium devices (tablets, 768px and up)
+      md: '768px',
+
+      // Large devices (desktops, 1024px and up)
+      lg: '1024px',
+
+      // Extra large devices (large desktops, 1280px and up)
+      xl: '1280px',
+
+      // 2X large devices (larger desktops, 1536px and up)
+      '2xl': '1536px',
+
+      // 3X large devices (extra large desktops, 1920px and up)
+      '3xl': '1920px',
+
+      // 4K and ultra-wide screens
+      '4xl': '2560px',
+
+      // Portrait orientation
+      portrait: { raw: '(orientation: portrait)' },
+
+      // Landscape orientation
+      landscape: { raw: '(orientation: landscape)' },
+
+      // High DPI screens (Retina displays)
+      retina: {
+        raw: '(-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)',
+      },
+
+      // Touch devices
+      touch: { raw: '(hover: none) and (pointer: coarse)' },
+
+      // Mouse/trackpad devices
+      'no-touch': { raw: '(hover: hover) and (pointer: fine)' },
+
+      // Print media
+      print: { raw: 'print' },
+
+      // Reduced motion preference
+      'motion-safe': { raw: '(prefers-reduced-motion: no-preference)' },
+      'motion-reduce': { raw: '(prefers-reduced-motion: reduce)' },
+
+      // Dark mode preference
+      'dark-mode': { raw: '(prefers-color-scheme: dark)' },
+      'light-mode': { raw: '(prefers-color-scheme: light)' },
+
+      // High contrast preference
+      'high-contrast': { raw: '(prefers-contrast: high)' },
+
+      // Custom mobile breakpoints
+      'mobile-s': '320px', // Small mobile (iPhone 5/SE)
+      'mobile-m': '375px', // Medium mobile (iPhone 6/7/8)
+      'mobile-l': '425px', // Large mobile (iPhone 6/7/8 Plus)
+
+      // Custom tablet breakpoints
+      tablet: '768px', // iPad portrait
+      'tablet-l': '1024px', // iPad landscape
+
+      // Custom desktop breakpoints
+      desktop: '1024px', // Small desktop
+      'desktop-l': '1440px', // Large desktop
+      'desktop-xl': '1920px', // Extra large desktop
+
+      // Max-width breakpoints (mobile-first approach alternatives)
+      'max-xs': { max: '474px' },
+      'max-sm': { max: '639px' },
+      'max-md': { max: '767px' },
+      'max-lg': { max: '1023px' },
+      'max-xl': { max: '1279px' },
+      'max-2xl': { max: '1535px' },
+
+      // Range breakpoints (between two sizes)
+      'sm-md': { min: '640px', max: '767px' },
+      'md-lg': { min: '768px', max: '1023px' },
+      'lg-xl': { min: '1024px', max: '1279px' },
+      'xl-2xl': { min: '1280px', max: '1535px' },
+    },
     extend: {
       colors: {
         // Primary brand colors
@@ -77,7 +162,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1rem' }],
@@ -132,7 +217,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindScrollbar],
   darkMode: 'class', // Enable dark mode with class strategy
 };
 

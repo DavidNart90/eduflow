@@ -180,21 +180,13 @@ ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Admins can view all users" ON users
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+-- Allow service role to bypass RLS for admin operations
+CREATE POLICY "Service role can manage users" ON users
+  FOR ALL USING (auth.role() = 'service_role');
 
-CREATE POLICY "Admins can insert users" ON users
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+-- Allow authenticated users to insert their own profile during signup
+CREATE POLICY "Users can insert their own profile" ON users
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can update their own profile" ON users
   FOR UPDATE USING (auth.uid() = id);
@@ -203,42 +195,20 @@ CREATE POLICY "Users can update their own profile" ON users
 CREATE POLICY "Users can view their own transactions" ON savings_transactions
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Admins can view all transactions" ON savings_transactions
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
-
-CREATE POLICY "Admins can insert transactions" ON savings_transactions
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+-- Allow service role to manage transactions
+CREATE POLICY "Service role can manage transactions" ON savings_transactions
+  FOR ALL USING (auth.role() = 'service_role');
 
 -- Reports policies
-CREATE POLICY "Admins can manage reports" ON controller_reports
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Service role can manage reports" ON controller_reports
+  FOR ALL USING (auth.role() = 'service_role');
 
 -- Notifications policies
 CREATE POLICY "Users can view their own notifications" ON email_notifications
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Admins can manage notifications" ON email_notifications
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Service role can manage notifications" ON email_notifications
+  FOR ALL USING (auth.role() = 'service_role');
 
 -- Insert sample admin user (password will be set via Supabase Auth)
 INSERT INTO users (employee_id, email, full_name, role, management_unit) 

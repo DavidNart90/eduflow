@@ -176,71 +176,84 @@ ALTER TABLE savings_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE controller_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
 
--- Users policies - FIXED to avoid recursion
+-- Users policies - Simplified to avoid infinite recursion
 CREATE POLICY "Users can view their own profile" ON users
-  FOR SELECT USING (auth.uid()::text = id::text);
+  FOR SELECT USING (email = auth.jwt() ->> 'email');
 
+-- Allow admins to view all users (simplified)
 CREATE POLICY "Admins can view all users" ON users
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
+-- Allow admins to insert users
 CREATE POLICY "Admins can insert users" ON users
   FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
+-- Allow users to update their own profile
 CREATE POLICY "Users can update their own profile" ON users
-  FOR UPDATE USING (auth.uid()::text = id::text);
+  FOR UPDATE USING (email = auth.jwt() ->> 'email');
 
--- Transactions policies - FIXED
+-- Transactions policies - Simplified to avoid infinite recursion
 CREATE POLICY "Users can view their own transactions" ON savings_transactions
-  FOR SELECT USING (auth.uid()::text = user_id::text);
+  FOR SELECT USING (
+    user_id IN (
+      SELECT id FROM users WHERE email = auth.jwt() ->> 'email'
+    )
+  );
 
+-- Allow admins to view all transactions
 CREATE POLICY "Admins can view all transactions" ON savings_transactions
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
+-- Allow admins to insert transactions
 CREATE POLICY "Admins can insert transactions" ON savings_transactions
   FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
--- Reports policies - FIXED
+-- Reports policies - Only admins can manage reports
 CREATE POLICY "Admins can manage reports" ON controller_reports
   FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
--- Notifications policies - FIXED
+-- Notifications policies - Users can view their own notifications
 CREATE POLICY "Users can view their own notifications" ON email_notifications
-  FOR SELECT USING (auth.uid()::text = user_id::text);
+  FOR SELECT USING (
+    user_id IN (
+      SELECT id FROM users WHERE email = auth.jwt() ->> 'email'
+    )
+  );
 
+-- Allow admins to manage notifications
 CREATE POLICY "Admins can manage notifications" ON email_notifications
   FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id::text = auth.uid()::text AND role = 'admin'
+    (auth.jwt() ->> 'email') IN (
+      SELECT email FROM users WHERE role = 'admin'
     )
   );
 
--- Insert sample admin user (password will be set via Supabase Auth)
+-- Insert sample admin user
 INSERT INTO users (employee_id, email, full_name, role, management_unit) 
 VALUES ('ADMIN001', 'admin@eduflow.com', 'System Administrator', 'admin', 'System')
+ON CONFLICT (employee_id) DO NOTHING;
+
+-- Insert sample teacher user
+INSERT INTO users (employee_id, email, full_name, role, management_unit) 
+VALUES ('TEACHER001', 'teacher@eduflow.com', 'Sample Teacher', 'teacher', 'Mathematics')
 ON CONFLICT (employee_id) DO NOTHING; 
