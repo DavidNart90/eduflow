@@ -19,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function AdminSettingsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const { user, signOut } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -43,7 +44,6 @@ export default function AdminSettingsPage() {
     confirm: false,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
 
   // Set form data from user context
@@ -224,6 +224,7 @@ export default function AdminSettingsPage() {
     <AdminRoute>
       <Layout>
         <div className='space-y-6 max-w-7xl mx-auto p-5 md:p-10 lg:p-12 bg-white dark:bg-gray-900 rounded-lg shadow'>
+          {/* Skeleton Loading */}
           {/* Page Header */}
           <div className='flex items-center justify-between'>
             <div>

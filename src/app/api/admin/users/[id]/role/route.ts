@@ -4,7 +4,7 @@ import { validateAdminAuth } from '@/lib/auth-server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validate admin authentication
@@ -17,7 +17,7 @@ export async function PUT(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
     const { role } = await request.json();
 
     // Validate role

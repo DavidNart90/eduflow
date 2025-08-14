@@ -4,7 +4,7 @@ import { validateAdminAuth } from '@/lib/auth-server';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validate admin authentication
@@ -17,7 +17,7 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Use service role client for database operations
     const supabaseAdmin = createServerSupabaseClient();
