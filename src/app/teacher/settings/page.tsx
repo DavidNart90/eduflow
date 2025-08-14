@@ -223,7 +223,7 @@ export default function TeacherSettingsPage() {
   return (
     <TeacherRoute>
       <Layout>
-        <div className='space-y-6 p-5 md:p-10 lg:p-12 bg-white dark:bg-gray-900 rounded-lg shadow'>
+        <div className='space-y-6 max-w-7xl mx-auto p-5 md:p-10 lg:p-12 bg-white dark:bg-gray-900 rounded-lg shadow'>
           {/* Page Header */}
           <div className='flex items-center justify-between'>
             <div>

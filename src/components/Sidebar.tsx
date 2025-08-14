@@ -53,12 +53,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
     {
       name: 'Upload Controller Report',
-      href: '/admin/upload-report',
+      href: '/admin/upload-controller-report',
       icon: DocumentArrowUpIcon,
     },
     {
-      name: 'Generate Monthly Reports',
-      href: '/admin/generate-reports',
+      name: 'Generate Quarterly Reports',
+      href: '/admin/generate-quarterly-reports',
       icon: ChartBarIcon,
     },
     {
