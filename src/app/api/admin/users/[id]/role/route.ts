@@ -63,9 +63,12 @@ export async function PUT(
       );
     }
 
+    // Note: The user whose role was changed will need to refresh their session
+    // or log out and back in to see the new role take effect
     return NextResponse.json({
       message: 'User role updated successfully',
       role,
+      note: 'User will need to refresh their session or log out and back in to see changes',
     });
   } catch {
     return NextResponse.json(

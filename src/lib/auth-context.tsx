@@ -42,6 +42,7 @@ interface AuthContextType {
   updateProfile: (
     updates: Partial<AuthUser>
   ) => Promise<{ error: AuthError | null | Error }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -220,11 +221,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
+      // Handle sign out event specifically to prevent re-authentication
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+        lastFetchedUserIdRef.current = null;
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
 
       if (session?.user?.id) {
-        // Only fetch profile if it's a different user or we don't have user data yet
-        if (lastFetchedUserIdRef.current !== session.user.id) {
+        // Always fetch profile on sign in or token refresh to get latest role changes
+        if (
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          lastFetchedUserIdRef.current !== session.user.id
+        ) {
+          // Clear cached user data to force fresh fetch
+          lastFetchedUserIdRef.current = null;
           await fetchUserProfile(session.user.id);
         } else {
           setLoading(false);
@@ -258,17 +274,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setLoading(false);
 
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Clear the last fetched user reference
+      lastFetchedUserIdRef.current = null;
+      fetchingRef.current = false;
 
-      // Redirect to login page
-      router.push('/auth/login');
-    } catch {
+      // Check if there's actually a session to sign out from
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
+      if (currentSession) {
+        // Only attempt to sign out if there's a valid session
+        const { error } = await supabase.auth.signOut();
+
+        if (error && error.message !== 'Auth session missing!') {
+          if (process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-console
+            console.error('Error signing out:', error);
+          }
+        }
+      }
+
+      // Clear all possible Supabase storage keys
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+
+      // Force redirect to login page
+      router.replace('/auth/login');
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error during sign out:', error);
+      }
+
       // Even if there's an error, clear local state and redirect
       setUser(null);
       setSession(null);
       setLoading(false);
-      router.push('/auth/login');
+      lastFetchedUserIdRef.current = null;
+      fetchingRef.current = false;
+
+      // Clear all possible Supabase storage keys
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+
+      router.replace('/auth/login');
     }
   };
 
@@ -326,6 +402,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const refreshProfile = async () => {
+    if (!session?.user?.id) return;
+
+    // Clear cached user data and force fresh fetch
+    lastFetchedUserIdRef.current = null;
+    setLoading(true);
+    await fetchUserProfile(session.user.id);
+  };
+
   const value = {
     user,
     session,
@@ -335,6 +420,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     resetPassword,
     updateProfile,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

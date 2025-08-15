@@ -477,100 +477,81 @@ export default function ManageTeachersPage() {
                   variant='glass'
                   className='border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
-                  <CardContent className='p-6 md:p-8'>
-                    <div className='overflow-x-auto'>
-                      <table className='w-full table-fixed'>
-                        <colgroup>
-                          <col className='w-[18%]' /> {/* Name */}
-                          <col className='w-[18%]' /> {/* Email */}
-                          <col className='w-[12%]' />
-                          {/* Employee ID */}
-                          <col className='w-[16%]' /> {/* Management Unit */}
-                          <col className='w-[8%]' /> {/* Role */}
-                          <col className='w-[8%]' /> {/* Created */}
-                          <col className='w-[22%]' /> {/* Actions */}
-                        </colgroup>
-                        <thead>
-                          <tr className='border-b border-slate-200 dark:border-slate-700'>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                  <CardContent className='p-2 md:p-8'>
+                    <div className='overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-900/50'>
+                      <table className='w-full min-w-[1000px] lg:min-w-full'>
+                        <thead className='bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-900/20 border-b border-slate-200 dark:border-slate-700'>
+                          <tr>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Name
                             </th>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Email Address
                             </th>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Employee ID
                             </th>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Management Unit
                             </th>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Role
                             </th>
-                            <th className='text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-left py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Created
                             </th>
-                            <th className='text-right py-3 px-4 font-medium text-slate-700 dark:text-slate-300'>
+                            <th className='text-right py-4 px-4 sm:px-6 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider'>
                               Actions
                             </th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {paginatedTeachers.map(teacher => (
+                        <tbody className='divide-y divide-slate-200 dark:divide-slate-700'>
+                          {paginatedTeachers.map((teacher, index) => (
                             <tr
                               key={teacher.id}
-                              className='border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                              className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 ${
+                                index % 2 === 0
+                                  ? 'bg-white dark:bg-slate-900/50'
+                                  : 'bg-slate-50/50 dark:bg-slate-800/25'
+                              }`}
                             >
-                              <td className='py-3 px-4'>
-                                <div className='flex items-center space-x-3'>
-                                  <div className='w-8 h-8 bg-gradient-to-br from-primary/20 to-blue-600/20 rounded-full flex items-center justify-center'>
-                                    <UserIcon className='h-4 w-4 text-primary' />
+                              <td className='py-4 px-4 sm:px-6'>
+                                <div className='flex items-center space-x-3 min-w-[160px]'>
+                                  <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0'>
+                                    <UserIcon className='h-4 w-4 text-white' />
                                   </div>
-                                  <span
-                                    className='text-slate-900 dark:text-white font-medium truncate'
-                                    title={teacher.full_name}
-                                  >
+                                  <span className='text-slate-900 dark:text-white font-medium truncate'>
                                     {teacher.full_name}
                                   </span>
                                 </div>
                               </td>
-                              <td className='py-3 px-4 text-slate-600 dark:text-slate-400'>
-                                <span
-                                  className='truncate block'
-                                  title={teacher.email}
-                                >
+                              <td className='py-4 px-4 sm:px-6 text-slate-600 dark:text-slate-400'>
+                                <div className='min-w-[200px] max-w-[250px] truncate'>
                                   {teacher.email}
-                                </span>
+                                </div>
                               </td>
-                              <td className='py-3 px-4 text-slate-600 dark:text-slate-400'>
-                                <span
-                                  className='truncate block'
-                                  title={teacher.employee_id}
-                                >
+                              <td className='py-4 px-4 sm:px-6 text-slate-600 dark:text-slate-400'>
+                                <div className='min-w-[120px] max-w-[140px] truncate'>
                                   {teacher.employee_id}
-                                </span>
+                                </div>
                               </td>
-                              <td className='py-3 px-4 text-slate-600 dark:text-slate-400'>
-                                <span
-                                  className='truncate block'
-                                  title={teacher.management_unit}
-                                >
+                              <td className='py-4 px-4 sm:px-6 text-slate-600 dark:text-slate-400'>
+                                <div className='min-w-[180px] max-w-[220px] truncate'>
                                   {teacher.management_unit}
-                                </span>
+                                </div>
                               </td>
-                              <td className='py-3 px-4'>
-                                {getRoleBadge(teacher.role)}
+                              <td className='py-4 px-4 sm:px-6'>
+                                <div className='min-w-[80px]'>
+                                  {getRoleBadge(teacher.role)}
+                                </div>
                               </td>
-                              <td className='py-3 px-4 text-slate-600 dark:text-slate-400'>
-                                <span
-                                  className='truncate block'
-                                  title={formatDate(teacher.created_at)}
-                                >
+                              <td className='py-4 px-4 sm:px-6 text-slate-600 dark:text-slate-400'>
+                                <div className='min-w-[100px] whitespace-nowrap'>
                                   {formatDate(teacher.created_at)}
-                                </span>
+                                </div>
                               </td>
-                              <td className='py-3 px-4'>
-                                <div className='flex justify-end space-x-2'>
+                              <td className='py-4 px-4 sm:px-6'>
+                                <div className='flex justify-end space-x-1 sm:space-x-2 min-w-[160px]'>
                                   <Button
                                     variant='ghost'
                                     size='sm'
@@ -578,14 +559,16 @@ export default function ManageTeachersPage() {
                                       setSelectedTeacher(teacher);
                                       setShowPromoteModal(true);
                                     }}
-                                    className='!text-purple-600 hover:!text-purple-700 hover:!bg-purple-50 dark:hover:!bg-purple-900/20'
+                                    className='!text-purple-600 hover:!text-purple-700 hover:!bg-purple-50 dark:hover:!bg-purple-900/20 text-xs sm:text-sm'
                                     icon={
-                                      <ShieldCheckIcon className='h-4 w-4' />
+                                      <ShieldCheckIcon className='h-3 w-3 sm:h-4 sm:w-4' />
                                     }
                                   >
-                                    {teacher.role === 'teacher'
-                                      ? 'Promote'
-                                      : 'Demote'}
+                                    <span className='hidden sm:inline'>
+                                      {teacher.role === 'teacher'
+                                        ? 'Promote'
+                                        : 'Demote'}
+                                    </span>
                                   </Button>
                                   <Button
                                     variant='ghost'
@@ -595,10 +578,14 @@ export default function ManageTeachersPage() {
                                         `/admin/teachers/${teacher.id}/edit`
                                       )
                                     }
-                                    className='!text-blue-600 hover:!text-blue-700 hover:!bg-blue-50 dark:hover:!bg-blue-900/20'
-                                    icon={<PencilIcon className='h-4 w-4' />}
+                                    className='!text-blue-600 hover:!text-blue-700 hover:!bg-blue-50 dark:hover:!bg-blue-900/20 text-xs sm:text-sm'
+                                    icon={
+                                      <PencilIcon className='h-3 w-3 sm:h-4 sm:w-4' />
+                                    }
                                   >
-                                    Edit
+                                    <span className='hidden sm:inline'>
+                                      Edit
+                                    </span>
                                   </Button>
                                   <Button
                                     variant='ghost'
@@ -607,10 +594,14 @@ export default function ManageTeachersPage() {
                                       setSelectedTeacher(teacher);
                                       setShowDeleteModal(true);
                                     }}
-                                    className='!text-red-600 hover:!text-red-700 hover:!bg-red-50 dark:hover:!bg-red-900/20'
-                                    icon={<TrashIcon className='h-4 w-4' />}
+                                    className='!text-red-600 hover:!text-red-700 hover:!bg-red-50 dark:hover:!bg-red-900/20 text-xs sm:text-sm'
+                                    icon={
+                                      <TrashIcon className='h-3 w-3 sm:h-4 sm:w-4' />
+                                    }
                                   >
-                                    Delete
+                                    <span className='hidden sm:inline'>
+                                      Delete
+                                    </span>
                                   </Button>
                                 </div>
                               </td>
