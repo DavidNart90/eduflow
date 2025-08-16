@@ -7,15 +7,14 @@ import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import {
   Card,
-  CardHeader,
   CardContent,
   Button,
   Badge,
   Pagination,
   Input,
   Select,
-  DashboardSkeleton,
 } from '@/components/ui';
+import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   CurrencyDollarIcon,
   PhoneIcon,
@@ -134,7 +133,7 @@ export default function SavingsHistoryPage() {
         setTimeout(() => {
           setData(mockData);
           setLoading(false);
-        }, 1000);
+        }, 3000);
 
         // Actual implementation would be:
         // const response = await fetch('/api/teacher/savings-history', {
@@ -147,7 +146,6 @@ export default function SavingsHistoryPage() {
       } catch {
         // In development, we'll skip logging the error
         setData(mockData); // Fallback to mock data
-      } finally {
         setLoading(false);
       }
     };
@@ -249,7 +247,189 @@ export default function SavingsHistoryPage() {
     return (
       <TeacherRoute>
         <Layout>
-          <DashboardSkeleton />
+          <div className='p-4 md:p-6 min-h-screen'>
+            {/* Loading State */}
+            <div className='space-y-8'>
+              {/* Header Skeleton */}
+              <div className='mb-6 md:mb-8'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                  <div>
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={350}
+                      height={40}
+                      animation='pulse'
+                      className='rounded-lg mb-3'
+                    />
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={280}
+                      height={20}
+                      animation='pulse'
+                      className='rounded-lg'
+                    />
+                  </div>
+                  <MuiSkeletonComponent
+                    variant='rectangular'
+                    width={80}
+                    height={32}
+                    animation='pulse'
+                    className='rounded-full'
+                  />
+                </div>
+              </div>
+
+              {/* Summary Cards Skeleton */}
+              <div className='grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8'>
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    variant='glass'
+                    className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  >
+                    <CardContent className='p-6'>
+                      <div className='space-y-4'>
+                        <div className='flex items-center justify-between'>
+                          <div className='space-y-2'>
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={150}
+                              height={24}
+                              animation='pulse'
+                              className='rounded-md'
+                            />
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={200}
+                              height={16}
+                              animation='pulse'
+                              className='rounded-md'
+                            />
+                          </div>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={48}
+                            height={48}
+                            animation='pulse'
+                            className='rounded-full'
+                          />
+                        </div>
+                        <MuiSkeletonComponent
+                          variant='rectangular'
+                          width={160}
+                          height={40}
+                          animation='pulse'
+                          className='rounded-md'
+                        />
+                        <MuiSkeletonComponent
+                          variant='rectangular'
+                          width={120}
+                          height={20}
+                          animation='pulse'
+                          className='rounded-md'
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Loading Transaction History Card */}
+              <Card
+                variant='glass'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                padding='lg'
+              >
+                <CardContent className='p-4 md:p-8'>
+                  {/* Loading Card Header */}
+                  <div className='mb-6'>
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={200}
+                      height={28}
+                      animation='pulse'
+                      className='mb-2 rounded-lg'
+                    />
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={300}
+                      height={20}
+                      animation='pulse'
+                      className='rounded-lg'
+                    />
+                  </div>
+
+                  {/* Loading Filters */}
+                  <div className='mb-6 space-y-4'>
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6'>
+                      {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i}>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={'80%'}
+                            height={16}
+                            animation='pulse'
+                            className='mb-2 rounded'
+                          />
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={'100%'}
+                            height={40}
+                            animation='pulse'
+                            className='rounded-lg'
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Loading Table */}
+                  <div className='overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700'>
+                    <table className='w-full min-w-[800px]'>
+                      <thead className='bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
+                        <tr>
+                          {[
+                            'DATE',
+                            'DESCRIPTION',
+                            'SOURCE',
+                            'AMOUNT',
+                            'BALANCE',
+                          ].map(header => (
+                            <th key={header} className='px-6 py-3'>
+                              <MuiSkeletonComponent
+                                variant='rectangular'
+                                width={'80%'}
+                                height={16}
+                                animation='pulse'
+                                className='rounded'
+                              />
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className='bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700'>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <tr key={i}>
+                            {[1, 2, 3, 4, 5].map(j => (
+                              <td key={j} className='px-6 py-4'>
+                                <MuiSkeletonComponent
+                                  variant='rectangular'
+                                  width={j === 3 ? '60%' : '80%'}
+                                  height={16}
+                                  animation='pulse'
+                                  className='rounded'
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </Layout>
       </TeacherRoute>
     );
@@ -258,38 +438,50 @@ export default function SavingsHistoryPage() {
   return (
     <TeacherRoute>
       <Layout>
-        <div className='min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 p-4 md:p-6'>
-          <div className='mx-auto max-w-7xl space-y-6'>
+        <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900 p-4 md:p-6'>
+          <div className='mx-auto max-w-8xl space-y-6'>
             {/* Header */}
-            <div className='flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0'>
-              <div>
-                <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-                  Savings History
-                </h1>
-                <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
-                  Complete Record
-                </p>
+            <div className='mb-6 md:mb-8'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                <div className='lg:w-full'>
+                  <h1 className='text-2xl md:text-4xl lg:text-center font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent'>
+                    Savings History & Analytics
+                  </h1>
+                  <p className='text-slate-600 dark:text-slate-400 mt-2 md:mt-2 text-base md:text-lg lg:text-center'>
+                    Complete Transaction Record
+                  </p>
+                  <p className='text-slate-500 dark:text-slate-500 text-xs md:text-sm lg:text-center'>
+                    Track all your contributions, withdrawals, and interest
+                    earnings
+                  </p>
+                </div>
+                <Badge
+                  variant='primary'
+                  className='px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-medium self-start sm:self-auto'
+                >
+                  Teacher
+                </Badge>
               </div>
             </div>
 
             {/* Summary Cards */}
-            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8'>
               <Card
                 variant='glass'
-                className='hover:scale-105 transition-transform duration-300'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80  hover:shadow-xl'
               >
-                <CardContent>
-                  <div className='flex items-center'>
+                <CardContent className='p-4 md:p-6'>
+                  <div className='flex items-center space-x-4'>
                     <div className='flex-shrink-0'>
-                      <div className='flex h-10 w-10 items-center justify-center rounded-modern bg-primary-500 text-white'>
+                      <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg'>
                         <CurrencyDollarIcon className='h-6 w-6' />
                       </div>
                     </div>
-                    <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide'>
                         Total Savings Balance
                       </p>
-                      <p className='text-2xl font-bold text-gray-900 dark:text-white'>
+                      <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
                         {data && formatCurrency(data.totalBalance)}
                       </p>
                     </div>
@@ -299,20 +491,20 @@ export default function SavingsHistoryPage() {
 
               <Card
                 variant='glass'
-                className='hover:scale-105 transition-transform duration-300'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl'
               >
-                <CardContent>
-                  <div className='flex items-center'>
+                <CardContent className='p-4 md:p-6'>
+                  <div className='flex items-center space-x-4'>
                     <div className='flex-shrink-0'>
-                      <div className='flex h-10 w-10 items-center justify-center rounded-modern bg-blue-500 text-white'>
+                      <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg'>
                         <PhoneIcon className='h-6 w-6' />
                       </div>
                     </div>
-                    <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                        Total MoMo Contributions
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide'>
+                        MoMo Contributions
                       </p>
-                      <p className='text-2xl font-bold text-gray-900 dark:text-white'>
+                      <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
                         {data && formatCurrency(data.totalMomoContributions)}
                       </p>
                     </div>
@@ -322,20 +514,20 @@ export default function SavingsHistoryPage() {
 
               <Card
                 variant='glass'
-                className='hover:scale-105 transition-transform duration-300'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80  hover:shadow-xl'
               >
-                <CardContent>
-                  <div className='flex items-center'>
+                <CardContent className='p-4 md:p-6'>
+                  <div className='flex items-center space-x-4'>
                     <div className='flex-shrink-0'>
-                      <div className='flex h-10 w-10 items-center justify-center rounded-modern bg-purple-500 text-white'>
+                      <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg'>
                         <UserIcon className='h-6 w-6' />
                       </div>
                     </div>
-                    <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                        Total Controller Contributions
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide'>
+                        Controller Deductions
                       </p>
-                      <p className='text-2xl font-bold text-gray-900 dark:text-white'>
+                      <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
                         {data &&
                           formatCurrency(data.totalControllerContributions)}
                       </p>
@@ -346,20 +538,20 @@ export default function SavingsHistoryPage() {
 
               <Card
                 variant='glass'
-                className='hover:scale-105 transition-transform duration-300'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80  hover:shadow-xl'
               >
-                <CardContent>
-                  <div className='flex items-center'>
+                <CardContent className='p-4 md:p-6'>
+                  <div className='flex items-center space-x-4'>
                     <div className='flex-shrink-0'>
-                      <div className='flex h-10 w-10 items-center justify-center rounded-modern bg-success-500 text-white'>
+                      <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg'>
                         <ChartBarIcon className='h-6 w-6' />
                       </div>
                     </div>
-                    <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                        Interest Earned to Date
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide'>
+                        Interest Earned
                       </p>
-                      <p className='text-2xl font-bold text-gray-900 dark:text-white'>
+                      <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
                         {data && formatCurrency(data.interestEarned)}
                       </p>
                     </div>
@@ -369,17 +561,30 @@ export default function SavingsHistoryPage() {
             </div>
 
             {/* Filters and Transaction History */}
-            <Card variant='glass' padding='lg'>
-              <CardHeader
-                title='Transaction History'
-                subtitle='Complete record of all your savings activities'
-              />
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 shadow-xl'
+              padding='lg'
+            >
+              <div className='space-y-2 mb-6'>
+                <h2 className='text-xl md:text-2xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent'>
+                  Transaction History & Analytics
+                </h2>
+                <p className='text-slate-600 dark:text-slate-400 text-sm md:text-base'>
+                  Complete record of all your savings activities with advanced
+                  filtering
+                </p>
+              </div>
 
               {/* Filters */}
-              <div className='mb-6 space-y-4'>
-                <div className='grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6'>
-                  <div className='md:col-span-1'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+              <div className='mb-8 p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/50 dark:to-blue-900/20 rounded-xl border border-slate-200/50 dark:border-slate-700/50'>
+                <h3 className='text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center'>
+                  <FunnelIcon className='h-5 w-5 mr-2 text-primary' />
+                  Filter Transactions
+                </h3>
+                <div className='grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6'>
+                  <div className='lg:col-span-1'>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
                       Start Date
                     </label>
                     <Input
@@ -389,11 +594,12 @@ export default function SavingsHistoryPage() {
                         setFilters({ ...filters, startDate: e.target.value })
                       }
                       leftIcon={<CalendarIcon className='h-4 w-4' />}
+                      variant='filled'
                     />
                   </div>
 
-                  <div className='md:col-span-1'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  <div className='lg:col-span-1'>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
                       End Date
                     </label>
                     <Input
@@ -403,11 +609,12 @@ export default function SavingsHistoryPage() {
                         setFilters({ ...filters, endDate: e.target.value })
                       }
                       leftIcon={<CalendarIcon className='h-4 w-4' />}
+                      variant='filled'
                     />
                   </div>
 
-                  <div className='md:col-span-1'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  <div className='lg:col-span-1'>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
                       Transaction Source
                     </label>
                     <Select
@@ -419,132 +626,152 @@ export default function SavingsHistoryPage() {
                         })
                       }
                       options={[
-                        { value: 'all', label: 'All' },
-                        { value: 'momo', label: 'MoMo' },
-                        { value: 'controller', label: 'Controller' },
-                        { value: 'interest', label: 'Interest' },
+                        { value: 'all', label: 'All Sources' },
+                        { value: 'momo', label: 'Mobile Money' },
+                        { value: 'controller', label: 'Controller Deduction' },
+                        { value: 'interest', label: 'Interest Payment' },
                         { value: 'withdrawal', label: 'Withdrawal' },
                       ]}
+                      variant='filled'
                     />
                   </div>
 
-                  <div className='md:col-span-1'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                      Search
+                  <div className='lg:col-span-2'>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Search Transactions
                     </label>
                     <Input
                       type='text'
-                      placeholder='Search by month or notes'
+                      placeholder='Search by description or reference...'
                       value={filters.search}
                       onChange={e =>
                         setFilters({ ...filters, search: e.target.value })
                       }
                       leftIcon={<MagnifyingGlassIcon className='h-4 w-4' />}
+                      variant='filled'
                     />
                   </div>
 
-                  <div className='md:col-span-1 flex items-end'>
+                  <div className='lg:col-span-1 flex flex-col justify-end space-y-2'>
                     <Button
                       variant='primary'
                       onClick={handleApplyFilters}
                       icon={<FunnelIcon className='h-4 w-4' />}
                       className='w-full'
+                      size='md'
                     >
                       Apply Filters
                     </Button>
-                  </div>
-
-                  <div className='md:col-span-1 flex items-end space-x-2'>
-                    <Button
-                      variant='success'
-                      size='sm'
-                      onClick={handleExportCSV}
-                      icon={<DocumentArrowDownIcon className='h-4 w-4' />}
-                    >
-                      Download CSV
-                    </Button>
-                    <Button
-                      variant='error'
-                      size='sm'
-                      onClick={handleExportPDF}
-                      icon={<DocumentArrowDownIcon className='h-4 w-4' />}
-                    >
-                      Download PDF
-                    </Button>
+                    <div className='flex space-x-2'>
+                      <Button
+                        variant='success'
+                        size='sm'
+                        onClick={handleExportCSV}
+                        icon={<DocumentArrowDownIcon className='h-4 w-4' />}
+                        className='flex-1'
+                      >
+                        CSV
+                      </Button>
+                      <Button
+                        variant='error'
+                        size='sm'
+                        onClick={handleExportPDF}
+                        icon={<DocumentArrowDownIcon className='h-4 w-4' />}
+                        className='flex-1'
+                      >
+                        PDF
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Transaction Table */}
               <CardContent>
-                <div className='overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700'>
+                <div className='overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-900/50'>
                   <table className='w-full min-w-[800px]'>
-                    <thead className='bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
+                    <thead className='bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-900/20 border-b border-slate-200 dark:border-slate-700'>
                       <tr>
-                        <th className='px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider'>
-                          DATE
+                        <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Date
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider'>
-                          DESCRIPTION
+                        <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Description
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider'>
-                          SOURCE
+                        <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Source
                         </th>
-                        <th className='px-6 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider'>
-                          AMOUNT (GHS)
+                        <th className='px-6 py-4 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Amount (GHS)
                         </th>
-                        <th className='px-6 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider'>
-                          RUNNING BALANCE
+                        <th className='px-6 py-4 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Running Balance
                         </th>
                       </tr>
                     </thead>
-                    <tbody className='bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700'>
+                    <tbody className='divide-y divide-slate-200 dark:divide-slate-700'>
                       {loading ? (
                         <tr>
                           <td
                             colSpan={5}
-                            className='px-6 py-4 text-center text-gray-500 dark:text-gray-400'
+                            className='px-6 py-8 text-center text-slate-500 dark:text-slate-400'
                           >
-                            Loading...
+                            <div className='flex items-center justify-center space-x-2'>
+                              <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
+                              <span>Loading transactions...</span>
+                            </div>
                           </td>
                         </tr>
                       ) : paginatedTransactions.length === 0 ? (
                         <tr>
-                          <td
-                            colSpan={5}
-                            className='px-6 py-8 text-center text-gray-500 dark:text-gray-400'
-                          >
-                            No transactions found matching your criteria
+                          <td colSpan={5} className='px-6 py-12 text-center'>
+                            <div className='flex flex-col items-center space-y-3'>
+                              <div className='w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center'>
+                                <DocumentArrowDownIcon className='h-8 w-8 text-slate-400' />
+                              </div>
+                              <div className='text-center'>
+                                <p className='text-lg font-medium text-slate-900 dark:text-slate-100'>
+                                  No transactions found
+                                </p>
+                                <p className='text-slate-500 dark:text-slate-400'>
+                                  Try adjusting your filters or search criteria
+                                </p>
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       ) : (
-                        paginatedTransactions.map(transaction => (
+                        paginatedTransactions.map((transaction, index) => (
                           <tr
                             key={transaction.id}
-                            className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200'
+                            className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 ${
+                              index % 2 === 0
+                                ? 'bg-white dark:bg-slate-900/50'
+                                : 'bg-slate-50/50 dark:bg-slate-800/25'
+                            }`}
                           >
-                            <td className='px-6 py-4 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap'>
+                            <td className='px-6 py-4 text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap'>
                               {transaction.date}
                             </td>
-                            <td className='px-6 py-4 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap'>
+                            <td className='px-6 py-4 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap'>
                               {transaction.description}
                             </td>
-                            <td className='px-6 py-4 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap'>
+                            <td className='px-6 py-4 text-sm whitespace-nowrap'>
                               {getSourceBadge(transaction.source)}
                             </td>
-                            <td className='px-6 py-4 text-sm text-right whitespace-nowrap'>
+                            <td className='px-6 py-4 text-sm text-right whitespace-nowrap font-semibold'>
                               <span
                                 className={
                                   transaction.amount < 0
-                                    ? 'text-error-600'
-                                    : 'text-success-600 font-medium'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-green-600 dark:text-green-400'
                                 }
                               >
                                 {transaction.amount < 0 ? '-' : '+'}
                                 {formatCurrency(transaction.amount)}
                               </span>
                             </td>
-                            <td className='px-6 py-4 text-sm text-gray-900 dark:text-gray-100 text-right whitespace-nowrap font-medium'>
+                            <td className='px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-right whitespace-nowrap font-bold'>
                               {formatCurrency(transaction.runningBalance)}
                             </td>
                           </tr>
@@ -556,12 +783,14 @@ export default function SavingsHistoryPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className='mt-6 flex justify-center'>
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                    />
+                  <div className='mt-8 flex justify-center'>
+                    <div className='bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700'>
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    </div>
                   </div>
                 )}
               </CardContent>

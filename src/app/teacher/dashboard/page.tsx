@@ -7,16 +7,9 @@ import { useTeacherStore } from '@/lib/stores';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
+import { Card, CardContent, Button, Badge } from '@/components/ui';
+import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
-  Card,
-  CardHeader,
-  CardContent,
-  Button,
-  Badge,
-  DashboardSkeleton,
-} from '@/components/ui';
-import {
-  CurrencyDollarIcon,
   ArrowTrendingUpIcon,
   ClockIcon,
   PhoneIcon,
@@ -24,6 +17,10 @@ import {
   ChartBarIcon,
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
+  BanknotesIcon,
+  CalendarDaysIcon,
+  PlusIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
 interface DashboardData {
@@ -312,15 +309,155 @@ export default function TeacherDashboard() {
     return (
       <TeacherRoute>
         <Layout>
-          <div className='p-6'>
-            <div className='mb-4 text-center'>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
-                {apiStatus === 'loading'
-                  ? 'Loading your savings data...'
-                  : 'Initializing...'}
-              </p>
+          <div className='p-4 md:p-6 min-h-screen'>
+            {/* Loading State */}
+            <div className='space-y-8'>
+              {/* Header Skeleton */}
+              <div className='mb-6 md:mb-8'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                  <div>
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={350}
+                      height={40}
+                      animation='pulse'
+                      className='rounded-lg mb-3'
+                    />
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={280}
+                      height={20}
+                      animation='pulse'
+                      className='rounded-lg'
+                    />
+                  </div>
+                  <MuiSkeletonComponent
+                    variant='rectangular'
+                    width={80}
+                    height={32}
+                    animation='pulse'
+                    className='rounded-full'
+                  />
+                </div>
+              </div>
+
+              {/* Summary Cards Skeleton */}
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
+                {Array.from({ length: 2 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    variant='glass'
+                    className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  >
+                    <CardContent className='p-6'>
+                      <div className='space-y-4'>
+                        <div className='flex items-center justify-between'>
+                          <div className='space-y-2'>
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={150}
+                              height={24}
+                              animation='pulse'
+                              className='rounded-md'
+                            />
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={200}
+                              height={16}
+                              animation='pulse'
+                              className='rounded-md'
+                            />
+                          </div>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={48}
+                            height={48}
+                            animation='pulse'
+                            className='rounded-full'
+                          />
+                        </div>
+                        <MuiSkeletonComponent
+                          variant='rectangular'
+                          width={160}
+                          height={40}
+                          animation='pulse'
+                          className='rounded-md'
+                        />
+                        <MuiSkeletonComponent
+                          variant='rectangular'
+                          width={120}
+                          height={20}
+                          animation='pulse'
+                          className='rounded-md'
+                        />
+                        <MuiSkeletonComponent
+                          variant='rectangular'
+                          width='100%'
+                          height={48}
+                          animation='pulse'
+                          className='rounded-xl'
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Bottom Cards Skeleton */}
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                {Array.from({ length: 2 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    variant='glass'
+                    className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  >
+                    <CardContent className='p-6'>
+                      <div className='space-y-4'>
+                        <div className='flex items-center justify-between'>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={150}
+                            height={24}
+                            animation='pulse'
+                            className='rounded-md'
+                          />
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={80}
+                            height={20}
+                            animation='pulse'
+                            className='rounded-md'
+                          />
+                        </div>
+                        <div className='space-y-3'>
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className='flex items-center justify-between'
+                            >
+                              <MuiSkeletonComponent
+                                variant='rectangular'
+                                width={100}
+                                height={16}
+                                animation='pulse'
+                                className='rounded-md'
+                              />
+                              <MuiSkeletonComponent
+                                variant='rectangular'
+                                width={80}
+                                height={20}
+                                animation='pulse'
+                                className='rounded-md'
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <DashboardSkeleton />
           </div>
         </Layout>
       </TeacherRoute>
@@ -330,20 +467,29 @@ export default function TeacherDashboard() {
   return (
     <TeacherRoute>
       <Layout>
-        <div className='p-6'>
-          {/* Welcome Header */}
-          <div className='mb-8'>
-            <div className='flex items-center justify-between'>
+        <div className='p-4 md:p-6 min-h-screen'>
+          {/* Modern Header with Gradient Text */}
+          <div className='mb-6 md:mb-8'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
               <div>
-                <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
+                <h1 className='text-2xl md:text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent'>
                   Hello, {dashboardData?.user?.full_name || user?.full_name}!
                 </h1>
-                <p className='text-gray-600 dark:text-gray-400 mt-2'>
+                <p className='text-slate-600 dark:text-slate-400 mt-1 md:mt-2 text-base md:text-lg'>
+                  Teacher Dashboard
+                </p>
+                <p className='text-slate-500 dark:text-slate-500 text-xs md:text-sm'>
                   Here&apos;s your savings overview for{' '}
                   {dashboardData?.user?.management_unit ||
                     user?.management_unit}
                 </p>
               </div>
+              <Badge
+                variant='primary'
+                className='px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-medium self-start sm:self-auto'
+              >
+                Teacher
+              </Badge>
             </div>
           </div>
 
@@ -412,185 +558,234 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          {/* Main Dashboard Cards - Top Row */}
+          {/* Enhanced Summary Cards - Top Row */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
             {/* Total Savings Balance Card */}
-            <Card variant='glass' className='relative overflow-hidden'>
-              <div className='absolute top-4 right-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center'>
-                <CurrencyDollarIcon className='h-6 w-6 text-primary' />
-              </div>
-              <CardContent className='p-6'>
-                <div className='mb-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>
-                    Total Savings Balance
-                  </h3>
-                  <p className='text-gray-600 dark:text-gray-400 text-sm'>
-                    Your current savings with the association
-                  </p>
+            <Card
+              variant='glass'
+              className=' border-white/20 bg-white/80 dark:bg-slate-800/80'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg'>
+                      <BanknotesIcon className='h-6 w-6' />
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-slate-600 dark:text-slate-400'>
+                        Total Balance
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className='mb-6'>
-                  <div className='text-3xl font-bold text-gray-900 dark:text-white mb-2'>
-                    {formatCurrency(dashboardData?.balance || 0)}
+                <div className='space-y-4'>
+                  <div>
+                    <h3 className='text-3xl md:text-4xl font-bold text-slate-900 dark:text-white'>
+                      {formatCurrency(dashboardData?.balance || 0)}
+                    </h3>
+                    <p className='text-sm text-slate-600 dark:text-slate-400 mt-1'>
+                      Your current savings with the association
+                    </p>
                   </div>
-                  <div className='flex items-center text-green-600 dark:text-green-400 text-sm'>
+
+                  <div className='flex items-center text-green-600 dark:text-green-400 text-sm font-medium'>
                     <ArrowTrendingUpIcon className='h-4 w-4 mr-1' />
-                    +5.2% from last month
+                    <span>+5.2% from last month</span>
                   </div>
-                </div>
 
-                <Button
-                  variant='primary'
-                  size='lg'
-                  className='w-full'
-                  icon={<PhoneIcon className='h-5 w-5' />}
-                  iconPosition='left'
-                  onClick={() => router.push('/teacher/add-savings')}
-                >
-                  Add Savings via Momo
-                </Button>
+                  <Button
+                    variant='primary'
+                    size='lg'
+                    className='w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-xl'
+                    icon={<PlusIcon className='h-5 w-5' />}
+                    iconPosition='left'
+                    onClick={() => router.push('/teacher/add-savings')}
+                  >
+                    Add Savings
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
             {/* This Month's Contribution Card */}
-            <Card variant='glass' className='relative overflow-hidden'>
-              <div className='absolute top-4 right-4 w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center'>
-                <ChartBarIcon className='h-6 w-6 text-green-600 dark:text-green-400' />
-              </div>
-              <CardContent className='p-6'>
-                <div className='mb-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>
-                    This Month&apos;s Contribution
-                  </h3>
-                  <p className='text-gray-600 dark:text-gray-400 text-sm'>
-                    January 2024 total contributions
-                  </p>
-                </div>
-
-                <div className='mb-6'>
-                  <div className='text-3xl font-bold text-gray-900 dark:text-white mb-2'>
-                    {formatCurrency(dashboardData?.monthlyContribution || 0)}
-                  </div>
-                  <div className='flex items-center text-green-600 dark:text-green-400 text-sm mb-4'>
-                    <div className='w-4 h-4 bg-green-500 rounded-full mr-2'></div>
-                    {dashboardData?.contributionCount || 0} contributions made
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg'>
+                      <ChartBarIcon className='h-6 w-6' />
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-slate-600 dark:text-slate-400'>
+                        This Month
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Contribution Breakdown */}
-                <div className='space-y-3 mb-6'>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-gray-600 dark:text-gray-400 text-sm'>
-                      Controller Deduction
-                    </span>
-                    <span className='font-medium text-gray-900 dark:text-white'>
-                      {formatCurrency(
-                        dashboardData?.monthly_summary?.controller || 0
-                      )}
-                    </span>
+                <div className='space-y-4'>
+                  <div>
+                    <h3 className='text-3xl md:text-4xl font-bold text-slate-900 dark:text-white'>
+                      {formatCurrency(dashboardData?.monthlyContribution || 0)}
+                    </h3>
+                    <p className='text-sm text-slate-600 dark:text-slate-400 mt-1'>
+                      January 2024 total contributions
+                    </p>
                   </div>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-gray-600 dark:text-gray-400 text-sm'>
-                      Mobile Money
-                    </span>
-                    <span className='font-medium text-gray-900 dark:text-white'>
-                      {formatCurrency(
-                        dashboardData?.monthly_summary?.momo || 0
-                      )}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Progress Bar */}
-                <div className='mb-4'>
-                  <div className='flex justify-between text-sm mb-2'>
-                    <span className='text-gray-600 dark:text-gray-400'>
-                      Progress
-                    </span>
-                    <span className='text-gray-900 dark:text-white font-medium'>
-                      {Math.round(
-                        ((dashboardData?.monthlyContribution || 0) /
-                          (dashboardData?.monthlyTarget || 1)) *
-                          100
-                      )}
-                      % of monthly target
+                  <div className='flex items-center text-green-600 dark:text-green-400 text-sm font-medium'>
+                    <div className='w-2 h-2 bg-green-500 rounded-full mr-2'></div>
+                    <span>
+                      {dashboardData?.contributionCount || 0} contributions made
                     </span>
                   </div>
-                  <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2'>
-                    <div
-                      className='bg-blue-600 h-2 rounded-full transition-all duration-300'
-                      style={{
-                        width: `${Math.min(((dashboardData?.monthlyContribution || 0) / (dashboardData?.monthlyTarget || 1)) * 100, 100)}%`,
-                      }}
-                    ></div>
+
+                  {/* Enhanced Contribution Breakdown */}
+                  <div className='space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700'>
+                    <div className='flex justify-between items-center text-sm'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Controller
+                      </span>
+                      <span className='font-medium text-slate-900 dark:text-white'>
+                        {formatCurrency(
+                          dashboardData?.monthly_summary?.controller || 0
+                        )}
+                      </span>
+                    </div>
+                    <div className='flex justify-between items-center text-sm'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Mobile Money
+                      </span>
+                      <span className='font-medium text-slate-900 dark:text-white'>
+                        {formatCurrency(
+                          dashboardData?.monthly_summary?.momo || 0
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                    Target: {formatCurrency(dashboardData?.monthlyTarget || 0)}
-                  </p>
+
+                  {/* Enhanced Progress Bar */}
+                  <div className='space-y-2'>
+                    <div className='flex justify-between text-xs'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Monthly Progress
+                      </span>
+                      <span className='text-slate-900 dark:text-white font-medium'>
+                        {Math.round(
+                          ((dashboardData?.monthlyContribution || 0) /
+                            (dashboardData?.monthlyTarget || 1)) *
+                            100
+                        )}
+                        %
+                      </span>
+                    </div>
+                    <div className='w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2'>
+                      <div
+                        className='bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500'
+                        style={{
+                          width: `${Math.min(((dashboardData?.monthlyContribution || 0) / (dashboardData?.monthlyTarget || 1)) * 100, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <p className='text-xs text-slate-500 dark:text-slate-400'>
+                      Target:{' '}
+                      {formatCurrency(dashboardData?.monthlyTarget || 0)}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Dashboard Cards - Bottom Row */}
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-            {/* Savings History Card */}
-            <Card variant='glass'>
-              <CardHeader
-                title='Savings History'
-                subtitle='Recent transactions and contributions'
-              />
-              <CardContent>
+          {/* Enhanced Bottom Row Cards */}
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
+            {/* Enhanced Savings History Card */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center justify-between mb-6'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg'>
+                      <ClockIcon className='h-6 w-6' />
+                    </div>
+                    <div>
+                      <h3 className='text-lg font-semibold text-slate-900 dark:text-white'>
+                        Savings History
+                      </h3>
+                      <p className='text-sm text-slate-600 dark:text-slate-400'>
+                        Recent transactions and contributions
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => router.push('/teacher/savings-history')}
+                    className='text-xs text-primary hover:text-primary/80'
+                  >
+                    View All
+                  </Button>
+                </div>
+
                 <div className='space-y-4'>
                   {dashboardData?.recent_transactions &&
                   dashboardData.recent_transactions.length > 0 ? (
-                    <div className='overflow-hidden'>
-                      {/* Table Header */}
-                      <div className='grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-3 text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider'>
-                        <div>DATE</div>
-                        <div>AMOUNT</div>
-                        <div>SOURCE</div>
-                        <div>BALANCE</div>
+                    <div className='space-y-3'>
+                      {/* Enhanced Table Header */}
+                      <div className='grid grid-cols-4 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider'>
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Source</div>
+                        <div>Balance</div>
                       </div>
 
-                      {/* Table Rows */}
+                      {/* Enhanced Table Rows */}
                       <div className='space-y-2'>
-                        {dashboardData.recent_transactions.map(transaction => (
-                          <div
-                            key={transaction.id}
-                            className='grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors'
-                          >
-                            <div className='text-sm text-gray-900 dark:text-white'>
-                              {new Date(
-                                transaction.transaction_date
-                              ).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
+                        {dashboardData.recent_transactions
+                          .slice(0, 4)
+                          .map(transaction => (
+                            <div
+                              key={transaction.id}
+                              className='grid grid-cols-4 gap-4 px-4 py-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                            >
+                              <div className='text-sm text-slate-900 dark:text-white font-medium'>
+                                {new Date(
+                                  transaction.transaction_date
+                                ).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </div>
+                              <div className='text-sm font-semibold text-green-600 dark:text-green-400'>
+                                +{formatCurrency(transaction.amount)}
+                              </div>
+                              <div>
+                                {getTransactionTypeBadge(
+                                  transaction.transaction_type
+                                )}
+                              </div>
+                              <div className='text-sm text-slate-900 dark:text-white font-medium'>
+                                {formatCurrency(transaction.balance)}
+                              </div>
                             </div>
-                            <div className='text-sm font-medium text-green-600 dark:text-green-400'>
-                              +{formatCurrency(transaction.amount)}
-                            </div>
-                            <div>
-                              {getTransactionTypeBadge(
-                                transaction.transaction_type
-                              )}
-                            </div>
-                            <div className='text-sm text-gray-900 dark:text-white'>
-                              {formatCurrency(transaction.balance)}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
                   ) : (
                     <div className='text-center py-8'>
-                      <ClockIcon className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                      <p className='text-gray-500 dark:text-gray-400'>
+                      <div className='w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4'>
+                        <ClockIcon className='h-8 w-8 text-slate-400' />
+                      </div>
+                      <p className='text-slate-500 dark:text-slate-400 font-medium'>
                         No recent transactions
                       </p>
-                      <p className='text-sm text-gray-400 dark:text-gray-500 mt-1'>
+                      <p className='text-sm text-slate-400 dark:text-slate-500 mt-1'>
                         Your transaction history will appear here
                       </p>
                     </div>
@@ -599,65 +794,85 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
 
-            {/* Monthly Statements Card */}
-            <Card variant='glass'>
-              <CardHeader
-                title='Monthly Statements'
-                subtitle='Download your transaction reports'
-              />
-              <CardContent>
+            {/* Enhanced Monthly Statements Card */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center justify-between mb-6'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg'>
+                      <DocumentTextIcon className='h-6 w-6' />
+                    </div>
+                    <div>
+                      <h3 className='text-lg font-semibold text-slate-900 dark:text-white'>
+                        Monthly Statements
+                      </h3>
+                      <p className='text-sm text-slate-600 dark:text-slate-400'>
+                        Download your transaction reports
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className='space-y-6'>
-                  {/* Month Selection */}
-                  <div className='space-y-2'>
-                    <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                  {/* Enhanced Month Selection */}
+                  <div className='space-y-3'>
+                    <label className='text-sm font-medium text-slate-700 dark:text-slate-300'>
                       Select Month
                     </label>
-                    <select className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent'>
+                    <select className='w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm'>
                       <option>January 2024</option>
                       <option>December 2023</option>
                       <option>November 2023</option>
                     </select>
                   </div>
 
-                  {/* Download Button */}
+                  {/* Enhanced Download Button */}
                   <Button
-                    variant='primary'
+                    variant='secondary'
                     size='lg'
-                    className='w-full'
+                    className='w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg'
                     icon={<ArrowDownTrayIcon className='h-5 w-5' />}
                     iconPosition='left'
+                    onClick={() => router.push('/teacher/statements')}
                   >
                     Download PDF Statement
                   </Button>
 
-                  {/* Recent Downloads */}
+                  {/* Enhanced Recent Downloads */}
                   <div className='space-y-3'>
-                    <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                    <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300'>
                       Recent Downloads
                     </h4>
                     <div className='space-y-2'>
-                      <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                      <div className='flex items-center justify-between p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all'>
                         <div className='flex items-center space-x-3'>
-                          <DocumentArrowDownIcon className='h-5 w-5 text-red-500' />
-                          <span className='text-sm text-gray-900 dark:text-white'>
+                          <div className='w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center'>
+                            <DocumentArrowDownIcon className='h-4 w-4 text-red-600 dark:text-red-400' />
+                          </div>
+                          <span className='text-sm font-medium text-slate-900 dark:text-white'>
                             Dec 2023
                           </span>
                         </div>
-                        <div className='flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400'>
-                          <span>Downloaded 2 days ago</span>
-                          <ArrowDownTrayIcon className='h-4 w-4' />
+                        <div className='flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400'>
+                          <CalendarDaysIcon className='h-3 w-3' />
+                          <span>2 days ago</span>
                         </div>
                       </div>
-                      <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                      <div className='flex items-center justify-between p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all'>
                         <div className='flex items-center space-x-3'>
-                          <DocumentArrowDownIcon className='h-5 w-5 text-red-500' />
-                          <span className='text-sm text-gray-900 dark:text-white'>
+                          <div className='w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center'>
+                            <DocumentArrowDownIcon className='h-4 w-4 text-red-600 dark:text-red-400' />
+                          </div>
+                          <span className='text-sm font-medium text-slate-900 dark:text-white'>
                             Nov 2023
                           </span>
                         </div>
-                        <div className='flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400'>
-                          <span>Downloaded 1 week ago</span>
-                          <ArrowDownTrayIcon className='h-4 w-4' />
+                        <div className='flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400'>
+                          <CalendarDaysIcon className='h-3 w-3' />
+                          <span>1 week ago</span>
                         </div>
                       </div>
                     </div>
@@ -667,16 +882,20 @@ export default function TeacherDashboard() {
             </Card>
           </div>
 
-          {/* Footer Links */}
-          <div className='mt-12 pt-8 border-t border-gray-200 dark:border-gray-700'>
-            <div className='flex items-center justify-center space-x-8 text-sm text-gray-500 dark:text-gray-400'>
+          {/* Enhanced Footer Section */}
+          <div className='mt-12 pt-8 border-t border-slate-200 dark:border-slate-700'>
+            <div className='flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-sm text-slate-500 dark:text-slate-400'>
               <div className='flex items-center space-x-2'>
-                <div className='w-4 h-4 bg-green-500 rounded-full'></div>
+                <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
                 <span>Secure Platform</span>
               </div>
               <div className='flex items-center space-x-2'>
                 <PhoneIcon className='h-4 w-4' />
                 <span>Support: +233 123 456 789</span>
+              </div>
+              <div className='flex items-center space-x-2'>
+                <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+                <span>EduFlow v2.0</span>
               </div>
             </div>
           </div>

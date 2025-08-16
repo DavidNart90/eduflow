@@ -132,7 +132,7 @@ function ResetPasswordForm() {
           <form
             className='space-y-4 md:space-y-6'
             onSubmit={handleSubmit}
-            suppressHydrationWarning
+            suppressHydrationWarning={true}
           >
             {/* New Password Field */}
             <div>

@@ -793,7 +793,11 @@ function VerifyForm() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className='space-y-6'>
+            <form
+              onSubmit={handleSubmit}
+              className='space-y-6'
+              suppressHydrationWarning={true}
+            >
               {/* Section 1: Personal Information */}
               {currentSection === 1 && (
                 <div className='space-y-4'>

@@ -158,7 +158,7 @@ export default function LoginPage() {
             <form
               className='space-y-4 md:space-y-6'
               onSubmit={handleSubmit}
-              suppressHydrationWarning
+              suppressHydrationWarning={true}
             >
               {/* Email or Employee ID Field */}
               <div>

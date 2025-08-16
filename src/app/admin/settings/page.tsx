@@ -4,22 +4,23 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Button,
-  Input,
-  Badge,
-} from '@/components/ui';
+import { Card, CardContent, Button, Input, Badge } from '@/components/ui';
+import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   ExclamationTriangleIcon,
   EyeIcon,
   EyeSlashIcon,
+  UserCircleIcon,
+  ShieldCheckIcon,
+  BellIcon,
+  KeyIcon,
+  DevicePhoneMobileIcon,
+  CogIcon,
 } from '@heroicons/react/24/outline';
 
 export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, signOut } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -48,19 +49,49 @@ export default function AdminSettingsPage() {
 
   // Set form data from user context
   useEffect(() => {
+    const loadUserData = () => {
+      try {
+        setIsLoading(true);
+
+        // Simulate API call for loading admin settings
+        setTimeout(() => {
+          if (user) {
+            setFormData({
+              fullName: user.full_name || '',
+              email: user.email || '',
+              managementUnit: user.management_unit || '',
+              employeeId: user.employee_id || '',
+              dateJoined: user.created_at
+                ? new Date(user.created_at).toLocaleDateString()
+                : '',
+              currentPassword: '',
+              newPassword: '',
+              confirmPassword: '',
+            });
+          }
+          setIsLoading(false);
+        }, 3000);
+      } catch {
+        if (user) {
+          setFormData({
+            fullName: user.full_name || '',
+            email: user.email || '',
+            managementUnit: user.management_unit || '',
+            employeeId: user.employee_id || '',
+            dateJoined: user.created_at
+              ? new Date(user.created_at).toLocaleDateString()
+              : '',
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          });
+        }
+        setIsLoading(false);
+      }
+    };
+
     if (user) {
-      setFormData({
-        fullName: user.full_name || '',
-        email: user.email || '',
-        managementUnit: user.management_unit || '',
-        employeeId: user.employee_id || '',
-        dateJoined: user.created_at
-          ? new Date(user.created_at).toLocaleDateString()
-          : '',
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      loadUserData();
     }
   }, [user]);
 
@@ -88,31 +119,31 @@ export default function AdminSettingsPage() {
   const handleUpdatePassword = async () => {
     if (!user?.email) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setMessage('');
 
     // Validation
     if (!formData.currentPassword) {
       setMessage('Current password is required');
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.newPassword) {
       setMessage('New password is required');
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     if (formData.newPassword.length < 8) {
       setMessage('Password must be at least 8 characters long');
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage('Passwords do not match');
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
@@ -146,14 +177,14 @@ export default function AdminSettingsPage() {
     } catch {
       setMessage('An error occurred while updating password');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleSaveChanges = async () => {
     if (!user?.email) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setMessage('');
 
     try {
@@ -180,14 +211,14 @@ export default function AdminSettingsPage() {
     } catch {
       setMessage('An error occurred while updating profile');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleLogoutAllDevices = async () => {
     if (!user?.email) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setMessage('');
 
     try {
@@ -214,361 +245,621 @@ export default function AdminSettingsPage() {
     } catch {
       setMessage('An error occurred while logging out from all devices');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (!user) return null;
+  if (isLoading) {
+    return (
+      <AdminRoute>
+        <Layout>
+          <div className='p-4 md:p-6 min-h-screen'>
+            {/* Loading State */}
+            <div className='space-y-8'>
+              {/* Header Skeleton */}
+              <div className='mb-6 md:mb-8'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                  <div>
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={320}
+                      height={40}
+                      animation='pulse'
+                      className='rounded-lg mb-3'
+                    />
+                    <MuiSkeletonComponent
+                      variant='rectangular'
+                      width={360}
+                      height={20}
+                      animation='pulse'
+                      className='rounded-lg'
+                    />
+                  </div>
+                  <MuiSkeletonComponent
+                    variant='rectangular'
+                    width={100}
+                    height={32}
+                    animation='pulse'
+                    className='rounded-full'
+                  />
+                </div>
+              </div>
+
+              {/* Settings Cards Skeleton */}
+              <div className='space-y-6'>
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    variant='glass'
+                    className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  >
+                    <CardContent className='p-6'>
+                      <div className='space-y-6'>
+                        {/* Card Header */}
+                        <div className='flex items-center space-x-4 mb-6'>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={48}
+                            height={48}
+                            animation='pulse'
+                            className='rounded-full'
+                          />
+                          <div className='flex-1'>
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={220}
+                              height={24}
+                              animation='pulse'
+                              className='rounded-lg mb-2'
+                            />
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={300}
+                              height={16}
+                              animation='pulse'
+                              className='rounded-lg'
+                            />
+                          </div>
+                        </div>
+
+                        {/* Form Fields */}
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                          {Array.from({
+                            length: index === 0 ? 5 : index === 1 ? 3 : 3,
+                          }).map((_, fieldIndex) => (
+                            <div key={fieldIndex}>
+                              <MuiSkeletonComponent
+                                variant='rectangular'
+                                width={120}
+                                height={16}
+                                animation='pulse'
+                                className='rounded mb-2'
+                              />
+                              <MuiSkeletonComponent
+                                variant='rectangular'
+                                width={'100%'}
+                                height={40}
+                                animation='pulse'
+                                className='rounded-lg'
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className='flex space-x-3 pt-4'>
+                          <MuiSkeletonComponent
+                            variant='rectangular'
+                            width={120}
+                            height={36}
+                            animation='pulse'
+                            className='rounded-lg'
+                          />
+                          {index === 3 && (
+                            <MuiSkeletonComponent
+                              variant='rectangular'
+                              width={80}
+                              height={36}
+                              animation='pulse'
+                              className='rounded-lg'
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Layout>
+      </AdminRoute>
+    );
+  }
 
   return (
     <AdminRoute>
       <Layout>
-        <div className='space-y-6 max-w-7xl mx-auto p-5 md:p-10 lg:p-12 bg-white dark:bg-gray-900 rounded-lg shadow'>
-          {/* Skeleton Loading */}
-          {/* Page Header */}
-          <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
-                Account Settings
-              </h1>
-              <p className='text-gray-600 dark:text-gray-400'>
-                Manage your account settings and preferences
-              </p>
-            </div>
-            <Badge variant='primary'>Profile Management</Badge>
-          </div>
-
-          {/* Message Display */}
-          {message && (
-            <div
-              className={`p-4 rounded-lg mb-6 ${
-                message.includes('successfully')
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              <div className='flex items-center'>
-                <ExclamationTriangleIcon className='h-5 w-5 mr-2' />
-                {message}
-              </div>
-            </div>
-          )}
-
-          {/* Personal Information */}
-          <Card variant='glass'>
-            <CardHeader
-              title='Personal Information'
-              subtitle='Your profile details registered with the association'
-            />
-            <CardContent>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Full Name
-                  </label>
-                  <Input
-                    value={formData.fullName}
-                    onChange={e =>
-                      handleInputChange('fullName', e.target.value)
-                    }
-                    placeholder='Administrator Name'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Email Address
-                  </label>
-                  <Input
-                    type='email'
-                    value={formData.email}
-                    readOnly
-                    className='bg-gray-50 dark:bg-gray-800'
-                    placeholder='admin@education.gov.gh'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Management Unit
-                  </label>
-                  <Input
-                    value={formData.managementUnit}
-                    onChange={e =>
-                      handleInputChange('managementUnit', e.target.value)
-                    }
-                    placeholder='Ghana Education Service Headquarters'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Employee ID
-                  </label>
-                  <Input
-                    value={formData.employeeId}
-                    onChange={e =>
-                      handleInputChange('employeeId', e.target.value)
-                    }
-                    placeholder='ADM-2022-0156'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Date Joined
-                  </label>
-                  <Input
-                    value={formData.dateJoined}
-                    readOnly
-                    className='bg-gray-50 dark:bg-gray-800'
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Change Password */}
-          <Card variant='glass'>
-            <CardHeader
-              title='Change Password'
-              subtitle='Update your password to keep your account secure'
-            />
-            <CardContent>
-              <div className='space-y-4 max-w-md'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Current Password
-                  </label>
-                  <div className='relative'>
-                    <Input
-                      type={showPasswords.current ? 'text' : 'password'}
-                      value={formData.currentPassword}
-                      onChange={e =>
-                        handleInputChange('currentPassword', e.target.value)
-                      }
-                      placeholder='Enter current password'
-                    />
-                    <button
-                      type='button'
-                      onClick={() => togglePasswordVisibility('current')}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    >
-                      {showPasswords.current ? (
-                        <EyeSlashIcon className='h-5 w-5' />
-                      ) : (
-                        <EyeIcon className='h-5 w-5' />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    New Password
-                  </label>
-                  <div className='relative'>
-                    <Input
-                      type={showPasswords.new ? 'text' : 'password'}
-                      value={formData.newPassword}
-                      onChange={e =>
-                        handleInputChange('newPassword', e.target.value)
-                      }
-                      placeholder='Enter new password'
-                    />
-                    <button
-                      type='button'
-                      onClick={() => togglePasswordVisibility('new')}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    >
-                      {showPasswords.new ? (
-                        <EyeSlashIcon className='h-5 w-5' />
-                      ) : (
-                        <EyeIcon className='h-5 w-5' />
-                      )}
-                    </button>
-                  </div>
-                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                    Password must be at least 8 characters long
+        <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900 p-4 md:p-6'>
+          <div className='mx-auto max-w-5xl space-y-6'>
+            {/* Header */}
+            <div className='mb-6 md:mb-8'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                <div className='lg:w-full'>
+                  <h1 className='text-2xl md:text-4xl lg:text-center font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent'>
+                    Admin Settings & Configuration
+                  </h1>
+                  <p className='text-slate-600 dark:text-slate-400 mt-2 md:mt-2 text-base md:text-lg lg:text-center'>
+                    System Administration Panel
+                  </p>
+                  <p className='text-slate-500 dark:text-slate-500 text-xs md:text-sm lg:text-center'>
+                    Manage administrative account settings, security, and system
+                    preferences
                   </p>
                 </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    Confirm New Password
-                  </label>
-                  <div className='relative'>
-                    <Input
-                      type={showPasswords.confirm ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={e =>
-                        handleInputChange('confirmPassword', e.target.value)
-                      }
-                      placeholder='Confirm new password'
-                    />
-                    <button
-                      type='button'
-                      onClick={() => togglePasswordVisibility('confirm')}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                <Badge
+                  variant='error'
+                  className='px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-medium self-start sm:self-auto'
+                  icon={<CogIcon className='h-4 w-4' />}
+                >
+                  Administrator
+                </Badge>
+              </div>
+            </div>
+
+            {/* Message Display */}
+            {message && (
+              <Card
+                variant='glass'
+                className={`border-white/20 mb-6 ${
+                  message.includes('successfully')
+                    ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50'
+                    : 'bg-red-50/80 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
+                }`}
+              >
+                <CardContent className='p-4'>
+                  <div className='flex items-center space-x-3'>
+                    <div
+                      className={`flex-shrink-0 ${
+                        message.includes('successfully')
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
                     >
-                      {showPasswords.confirm ? (
-                        <EyeSlashIcon className='h-5 w-5' />
-                      ) : (
-                        <EyeIcon className='h-5 w-5' />
-                      )}
-                    </button>
+                      <ExclamationTriangleIcon className='h-5 w-5' />
+                    </div>
+                    <p
+                      className={`text-sm font-medium ${
+                        message.includes('successfully')
+                          ? 'text-green-800 dark:text-green-200'
+                          : 'text-red-800 dark:text-red-200'
+                      }`}
+                    >
+                      {message}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Personal Information */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl transition-all duration-300'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center space-x-4 mb-6'>
+                  <div className='flex-shrink-0'>
+                    <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg'>
+                      <UserCircleIcon className='h-6 w-6' />
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <h3 className='text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent'>
+                      Administrator Information
+                    </h3>
+                    <p className='text-slate-600 dark:text-slate-400 text-sm'>
+                      Your administrative profile details and credentials
+                    </p>
                   </div>
                 </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Full Name
+                    </label>
+                    <Input
+                      value={formData.fullName}
+                      onChange={e =>
+                        handleInputChange('fullName', e.target.value)
+                      }
+                      placeholder='Administrator Name'
+                      variant='filled'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Email Address
+                    </label>
+                    <Input
+                      type='email'
+                      value={formData.email}
+                      readOnly
+                      className='bg-slate-50 dark:bg-slate-800 cursor-not-allowed'
+                      placeholder='admin@education.gov.gh'
+                      variant='filled'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Management Unit
+                    </label>
+                    <Input
+                      value={formData.managementUnit}
+                      onChange={e =>
+                        handleInputChange('managementUnit', e.target.value)
+                      }
+                      placeholder='Ghana Education Service Headquarters'
+                      variant='filled'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Employee ID
+                    </label>
+                    <Input
+                      value={formData.employeeId}
+                      onChange={e =>
+                        handleInputChange('employeeId', e.target.value)
+                      }
+                      placeholder='ADM-2022-0156'
+                      variant='filled'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Date Joined
+                    </label>
+                    <Input
+                      value={formData.dateJoined}
+                      readOnly
+                      className='bg-slate-50 dark:bg-slate-800 cursor-not-allowed'
+                      variant='filled'
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Change Password */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl transition-all duration-300'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center space-x-4 mb-6'>
+                  <div className='flex-shrink-0'>
+                    <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg'>
+                      <KeyIcon className='h-6 w-6' />
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <h3 className='text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent'>
+                      Admin Password Security
+                    </h3>
+                    <p className='text-slate-600 dark:text-slate-400 text-sm'>
+                      Update your administrative password to maintain system
+                      security
+                    </p>
+                  </div>
+                </div>
+
+                <div className='space-y-4 max-w-md'>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Current Password
+                    </label>
+                    <div className='relative'>
+                      <Input
+                        type={showPasswords.current ? 'text' : 'password'}
+                        value={formData.currentPassword}
+                        onChange={e =>
+                          handleInputChange('currentPassword', e.target.value)
+                        }
+                        placeholder='Enter current password'
+                        variant='filled'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => togglePasswordVisibility('current')}
+                        className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors'
+                      >
+                        {showPasswords.current ? (
+                          <EyeSlashIcon className='h-5 w-5' />
+                        ) : (
+                          <EyeIcon className='h-5 w-5' />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      New Password
+                    </label>
+                    <div className='relative'>
+                      <Input
+                        type={showPasswords.new ? 'text' : 'password'}
+                        value={formData.newPassword}
+                        onChange={e =>
+                          handleInputChange('newPassword', e.target.value)
+                        }
+                        placeholder='Enter new password'
+                        variant='filled'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => togglePasswordVisibility('new')}
+                        className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors'
+                      >
+                        {showPasswords.new ? (
+                          <EyeSlashIcon className='h-5 w-5' />
+                        ) : (
+                          <EyeIcon className='h-5 w-5' />
+                        )}
+                      </button>
+                    </div>
+                    <p className='text-xs text-slate-500 dark:text-slate-400 mt-1'>
+                      Administrative password must be at least 8 characters long
+                    </p>
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
+                      Confirm New Password
+                    </label>
+                    <div className='relative'>
+                      <Input
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        value={formData.confirmPassword}
+                        onChange={e =>
+                          handleInputChange('confirmPassword', e.target.value)
+                        }
+                        placeholder='Confirm new password'
+                        variant='filled'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors'
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeSlashIcon className='h-5 w-5' />
+                        ) : (
+                          <EyeIcon className='h-5 w-5' />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleUpdatePassword}
+                    disabled={
+                      !formData.currentPassword ||
+                      !formData.newPassword ||
+                      !formData.confirmPassword ||
+                      isSubmitting
+                    }
+                    className='w-full'
+                    variant='primary'
+                  >
+                    {isSubmitting ? 'Updating...' : 'Update Admin Password'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Email Notifications */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl transition-all duration-300'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center space-x-4 mb-6'>
+                  <div className='flex-shrink-0'>
+                    <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg'>
+                      <BellIcon className='h-6 w-6' />
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <h3 className='text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent'>
+                      System Notifications
+                    </h3>
+                    <p className='text-slate-600 dark:text-slate-400 text-sm'>
+                      Configure administrative alerts and system notifications
+                    </p>
+                  </div>
+                </div>
+
+                <div className='space-y-6'>
+                  <div className='flex items-start space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/50 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50'>
+                    <div className='flex items-center h-5'>
+                      <input
+                        type='checkbox'
+                        checked={notifications.mobileContributions}
+                        onChange={e =>
+                          handleNotificationChange(
+                            'mobileContributions',
+                            e.target.checked
+                          )
+                        }
+                        className='h-5 w-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700'
+                      />
+                    </div>
+                    <div className='flex-1'>
+                      <label className='text-sm font-medium text-slate-700 dark:text-slate-300'>
+                        System Contribution Alerts
+                      </label>
+                      <p className='text-xs text-slate-500 dark:text-slate-400'>
+                        Get notified about all mobile money contributions
+                        system-wide
+                      </p>
+                    </div>
+                    {notifications.mobileContributions && (
+                      <Badge
+                        variant='success'
+                        size='sm'
+                        className='flex items-center'
+                      >
+                        <DevicePhoneMobileIcon className='h-3 w-3 mr-1' />
+                        ACTIVE
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className='flex items-start space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/50 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50'>
+                    <div className='flex items-center h-5'>
+                      <input
+                        type='checkbox'
+                        checked={notifications.monthlyStatements}
+                        onChange={e =>
+                          handleNotificationChange(
+                            'monthlyStatements',
+                            e.target.checked
+                          )
+                        }
+                        className='h-5 w-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700'
+                      />
+                    </div>
+                    <div className='flex-1'>
+                      <label className='text-sm font-medium text-slate-700 dark:text-slate-300'>
+                        Statement Generation Reports
+                      </label>
+                      <p className='text-xs text-slate-500 dark:text-slate-400'>
+                        Receive notifications when monthly statements are
+                        generated
+                      </p>
+                    </div>
+                    {notifications.monthlyStatements && (
+                      <Badge
+                        variant='success'
+                        size='sm'
+                        className='flex items-center'
+                      >
+                        <BellIcon className='h-3 w-3 mr-1' />
+                        ACTIVE
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className='flex items-start space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/50 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50'>
+                    <div className='flex items-center h-5'>
+                      <input
+                        type='checkbox'
+                        checked={notifications.interestPayments}
+                        onChange={e =>
+                          handleNotificationChange(
+                            'interestPayments',
+                            e.target.checked
+                          )
+                        }
+                        className='h-5 w-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700'
+                      />
+                    </div>
+                    <div className='flex-1'>
+                      <label className='text-sm font-medium text-slate-700 dark:text-slate-300'>
+                        Interest Calculation Alerts
+                      </label>
+                      <p className='text-xs text-slate-500 dark:text-slate-400'>
+                        Get alerted when quarterly interest calculations are
+                        processed
+                      </p>
+                    </div>
+                    {notifications.interestPayments && (
+                      <Badge
+                        variant='success'
+                        size='sm'
+                        className='flex items-center'
+                      >
+                        <BellIcon className='h-3 w-3 mr-1' />
+                        ACTIVE
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account Security */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl transition-all duration-300'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center space-x-4 mb-6'>
+                  <div className='flex-shrink-0'>
+                    <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg'>
+                      <ShieldCheckIcon className='h-6 w-6' />
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <h3 className='text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent'>
+                      System Security
+                    </h3>
+                    <p className='text-slate-600 dark:text-slate-400 text-sm'>
+                      Administrative security controls and session management
+                    </p>
+                  </div>
+                </div>
+
+                <div className='bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200/50 dark:border-red-800/50 rounded-xl p-6'>
+                  <div className='flex items-start space-x-4'>
+                    <div className='flex-shrink-0'>
+                      <ExclamationTriangleIcon className='h-6 w-6 text-red-500 mt-0.5' />
+                    </div>
+                    <div className='flex-1'>
+                      <h4 className='text-lg font-semibold text-red-800 dark:text-red-300 mb-2'>
+                        Critical Security Action
+                      </h4>
+                      <p className='text-sm text-red-700 dark:text-red-400 mb-4 leading-relaxed'>
+                        If you suspect unauthorized access to the administrative
+                        system, use this emergency option to sign out from all
+                        sessions on other devices. This will force a re-login on
+                        all devices except the current one.
+                      </p>
+                      <Button
+                        variant='error'
+                        size='md'
+                        onClick={handleLogoutAllDevices}
+                        disabled={isSubmitting}
+                        className='font-medium'
+                        icon={<ShieldCheckIcon className='h-4 w-4' />}
+                      >
+                        {isSubmitting
+                          ? 'Securing system...'
+                          : 'Emergency: Log out all devices'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Save Changes */}
+            <div className='flex justify-end items-center pt-6 border-t border-slate-200/50 dark:border-slate-700/50'>
+              <div className='flex space-x-4'>
+                <Button variant='outline' size='md' className='px-6'>
+                  Cancel
+                </Button>
                 <Button
-                  onClick={handleUpdatePassword}
-                  disabled={
-                    !formData.currentPassword ||
-                    !formData.newPassword ||
-                    !formData.confirmPassword ||
-                    isLoading
-                  }
-                  className='w-full'
+                  onClick={handleSaveChanges}
+                  disabled={isSubmitting}
+                  variant='primary'
+                  size='md'
+                  className='px-8'
                 >
-                  {isLoading ? 'Updating...' : 'Update Password'}
+                  {isSubmitting ? 'Saving...' : 'Save Admin Settings'}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Email Notifications */}
-          <Card variant='glass'>
-            <CardHeader
-              title='Email Notifications'
-              subtitle="Choose which notifications you'd like to receive"
-            />
-            <CardContent>
-              <div className='space-y-4'>
-                <div className='flex items-start space-x-3'>
-                  <div className='flex items-center h-5'>
-                    <input
-                      type='checkbox'
-                      checked={notifications.mobileContributions}
-                      onChange={e =>
-                        handleNotificationChange(
-                          'mobileContributions',
-                          e.target.checked
-                        )
-                      }
-                      className='h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary dark:border-gray-600 dark:bg-gray-700'
-                    />
-                  </div>
-                  <div>
-                    <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                      Mobile Contributions
-                    </label>
-                    <p className='text-xs text-gray-500 dark:text-gray-400'>
-                      Get notified when mobile money contributions are processed
-                    </p>
-                  </div>
-                  {notifications.mobileContributions && (
-                    <Badge variant='success' size='sm'>
-                      ON
-                    </Badge>
-                  )}
-                </div>
-                <div className='flex items-start space-x-3'>
-                  <div className='flex items-center h-5'>
-                    <input
-                      type='checkbox'
-                      checked={notifications.monthlyStatements}
-                      onChange={e =>
-                        handleNotificationChange(
-                          'monthlyStatements',
-                          e.target.checked
-                        )
-                      }
-                      className='h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary dark:border-gray-600 dark:bg-gray-700'
-                    />
-                  </div>
-                  <div>
-                    <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                      Monthly Statements
-                    </label>
-                    <p className='text-xs text-gray-500 dark:text-gray-400'>
-                      Receive monthly statement notifications via email
-                    </p>
-                  </div>
-                  {notifications.monthlyStatements && (
-                    <Badge variant='success' size='sm'>
-                      ON
-                    </Badge>
-                  )}
-                </div>
-                <div className='flex items-start space-x-3'>
-                  <div className='flex items-center h-5'>
-                    <input
-                      type='checkbox'
-                      checked={notifications.interestPayments}
-                      onChange={e =>
-                        handleNotificationChange(
-                          'interestPayments',
-                          e.target.checked
-                        )
-                      }
-                      className='h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary dark:border-gray-600 dark:bg-gray-700'
-                    />
-                  </div>
-                  <div>
-                    <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                      Interest Payments
-                    </label>
-                    <p className='text-xs text-gray-500 dark:text-gray-400'>
-                      Get alerted when interest is applied to your account
-                    </p>
-                  </div>
-                  {notifications.interestPayments && (
-                    <Badge variant='success' size='sm'>
-                      ON
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Account Security */}
-          <Card variant='glass'>
-            <CardHeader
-              title='Account Security'
-              subtitle='Manage your account security settings'
-            />
-            <CardContent>
-              <div className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4'>
-                <div className='flex items-start space-x-3'>
-                  <ExclamationTriangleIcon className='h-5 w-5 text-red-500 mt-0.5' />
-                  <div className='flex-1'>
-                    <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
-                      Secure Your Account
-                    </h3>
-                    <p className='text-sm text-red-700 dark:text-red-400 mt-1'>
-                      If you suspect unauthorized access, use this option to
-                      sign out from all sessions on other devices.
-                    </p>
-                    <Button
-                      variant='error'
-                      size='sm'
-                      onClick={handleLogoutAllDevices}
-                      className='mt-3'
-                    >
-                      Log out of all other devices
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Save Changes */}
-          <div className='flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700'>
-            <Button variant='outline' size='sm'>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isLoading}
-              className='px-8'
-            >
-              {isLoading ? 'Saving...' : 'Save Changes'}
-            </Button>
+            </div>
           </div>
         </div>
       </Layout>
