@@ -13,7 +13,6 @@ import {
   Input,
   Select,
 } from '@/components/ui';
-import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
@@ -271,121 +270,62 @@ export default function ManageTeachersPage() {
               <div className='mb-6 md:mb-8'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                   <div className='lg:w-full'>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={300}
-                      height={40}
-                      animation='pulse'
-                      className='mx-auto lg:mx-auto mb-3 rounded-lg'
-                    />
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={400}
-                      height={20}
-                      animation='pulse'
-                      className='mx-auto lg:mx-auto rounded-lg'
-                    />
+                    <div className='h-10 bg-gray-200 dark:bg-gray-700 rounded-lg w-80 mx-auto lg:mx-auto mb-3 animate-pulse'></div>
+                    <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-96 mx-auto lg:mx-auto animate-pulse'></div>
                   </div>
-                  <MuiSkeletonComponent
-                    variant='rectangular'
-                    width={80}
-                    height={32}
-                    animation='pulse'
-                    className='self-start sm:self-auto rounded-full'
-                  />
+                  <div className='h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse self-start sm:self-auto'></div>
                 </div>
               </div>
 
               {/* Loading Search and Filters */}
               <div className='max-w-6xl mx-auto mb-6'>
                 <div className='flex flex-col sm:flex-row gap-4 justify-between items-center'>
-                  <MuiSkeletonComponent
-                    variant='rectangular'
-                    width={300}
-                    height={48}
-                    animation='pulse'
-                    className='rounded-lg'
-                  />
+                  <div className='h-12 w-80 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse'></div>
                   <div className='flex gap-3'>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={120}
-                      height={48}
-                      animation='pulse'
-                      className='rounded-lg'
-                    />
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={140}
-                      height={48}
-                      animation='pulse'
-                      className='rounded-lg'
-                    />
+                    <div className='h-12 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse'></div>
+                    <div className='h-12 w-36 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse'></div>
                   </div>
                 </div>
               </div>
 
               {/* Loading Table */}
               <div className='max-w-6xl mx-auto'>
-                <Card
-                  variant='glass'
-                  className='border-white/20 bg-white/80 dark:bg-slate-800/80'
-                >
-                  <CardContent className='p-6 md:p-8'>
-                    {/* Table Headers */}
-                    <div className='grid grid-cols-6 gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700'>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <MuiSkeletonComponent
-                          key={i}
-                          variant='rectangular'
-                          width={'100%'}
-                          height={20}
-                          animation='pulse'
-                          className='rounded-lg'
-                        />
+                <div className='bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/20 p-6 md:p-8'>
+                  {/* Table Headers */}
+                  <div className='grid grid-cols-6 gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700'>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className='h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'
+                      ></div>
+                    ))}
+                  </div>
+
+                  {/* Table Rows */}
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className='grid grid-cols-6 gap-4 mb-4 py-3'>
+                      {Array.from({ length: 6 }).map((_, j) => (
+                        <div
+                          key={j}
+                          className='h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'
+                        ></div>
                       ))}
                     </div>
+                  ))}
 
-                    {/* Table Rows */}
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className='grid grid-cols-6 gap-4 mb-4 py-3'>
-                        {Array.from({ length: 6 }).map((_, j) => (
-                          <MuiSkeletonComponent
-                            key={j}
-                            variant='rectangular'
-                            width={'100%'}
-                            height={24}
-                            animation='pulse'
-                            className='rounded-lg'
-                          />
-                        ))}
-                      </div>
-                    ))}
-
-                    {/* Loading Pagination */}
-                    <div className='flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700'>
-                      <MuiSkeletonComponent
-                        variant='rectangular'
-                        width={150}
-                        height={20}
-                        animation='pulse'
-                        className='rounded-lg'
-                      />
-                      <div className='flex gap-2'>
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <MuiSkeletonComponent
-                            key={i}
-                            variant='rectangular'
-                            width={32}
-                            height={32}
-                            animation='pulse'
-                            className='rounded-lg'
-                          />
-                        ))}
-                      </div>
+                  {/* Loading Pagination */}
+                  <div className='flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700'>
+                    <div className='h-5 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'></div>
+                    <div className='flex gap-2'>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className='h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'
+                        ></div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </>
           ) : (

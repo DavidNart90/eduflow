@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { AuthProvider } from '@/lib/auth-context';
+import { AuthProvider } from '@/lib/auth-context-optimized';
 import { ThemeProvider } from '@/lib/theme-context';
 import { ErrorBoundary } from '@/components/ui';
 

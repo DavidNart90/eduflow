@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
@@ -46,13 +46,6 @@ export default function AddSavingsPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentReference, setPaymentReference] = useState('');
-
-  // Check if user is actually a teacher
-  useEffect(() => {
-    if (user && user.role !== 'teacher') {
-      router.push('/auth/login');
-    }
-  }, [user, router]);
 
   // Simulate loading state
   useEffect(() => {
@@ -200,25 +193,6 @@ export default function AddSavingsPage() {
   const handleBackToDashboard = () => {
     router.push('/teacher/dashboard');
   };
-
-  // Early return if user is not a teacher
-  if (user && user.role !== 'teacher') {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
-        <div className='text-center'>
-          <h1 className='text-2xl font-bold text-gray-900 dark:text-white mb-4'>
-            Access Denied
-          </h1>
-          <p className='text-gray-600 dark:text-gray-400 mb-6'>
-            This page is only accessible to teachers.
-          </p>
-          <Button variant='primary' onClick={() => router.push('/auth/login')}>
-            Go to Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <TeacherRoute>

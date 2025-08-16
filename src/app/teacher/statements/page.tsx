@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import {
@@ -48,22 +47,12 @@ const YEARS = [2025, 2024, 2023, 2022, 2021];
 
 export default function StatementsPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('2025');
   const [selectedMonth, setSelectedMonth] = useState('January');
   const [previousStatements, setPreviousStatements] = useState<StatementData[]>(
     []
   );
-
-  // Check if user is actually a teacher
-  useEffect(() => {
-    if (user && user.role !== 'teacher') {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      }
-    }
-  }, [user, router]);
 
   useEffect(() => {
     // Mock data for previous statements
@@ -138,15 +127,6 @@ export default function StatementsPage() {
       </Badge>
     );
   };
-
-  // Early return if user is not a teacher
-  if (user && user.role !== 'teacher') {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
-        <p>Redirecting...</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

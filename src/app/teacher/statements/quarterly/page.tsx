@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import {
@@ -38,22 +37,12 @@ const YEARS = [2025, 2024, 2023, 2022, 2021];
 
 export default function QuarterlyStatementsPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('2024');
   const [selectedQuarter, setSelectedQuarter] = useState('Q4');
   const [previousStatements, setPreviousStatements] = useState<
     QuarterlyStatementData[]
   >([]);
-
-  // Check if user is actually a teacher
-  useEffect(() => {
-    if (user && user.role !== 'teacher') {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      }
-    }
-  }, [user, router]);
 
   useEffect(() => {
     // Mock data for previous quarterly statements
@@ -129,15 +118,6 @@ export default function QuarterlyStatementsPage() {
       </Badge>
     );
   };
-
-  // Early return if user is not a teacher
-  if (user && user.role !== 'teacher') {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
-        <p>Redirecting...</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

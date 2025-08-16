@@ -1,14 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { useTeacherStore } from '@/lib/stores';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { useTeacherData } from '@/hooks/useTeacherData';
 import { Card, CardContent, Button, Badge } from '@/components/ui';
-import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   ArrowTrendingUpIcon,
   ClockIcon,
@@ -23,252 +20,12 @@ import {
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
-interface DashboardData {
-  user: {
-    id: string;
-    full_name: string;
-    employee_id: string;
-    management_unit: string;
-    email: string;
-    phone_number?: string;
-  };
-  balance: number;
-  monthlyContribution: number;
-  monthlyTarget: number;
-  contributionCount: number;
-  recent_transactions: Array<{
-    id: string;
-    user_id: string;
-    amount: number;
-    transaction_type: 'momo' | 'controller' | 'interest';
-    transaction_date: Date;
-    description?: string;
-    status: 'pending' | 'completed' | 'failed';
-    balance: number;
-  }>;
-  monthly_summary: {
-    total: number;
-    momo: number;
-    controller: number;
-    interest: number;
-  };
-}
-
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const { loading, setBalance, setTransactions, setLoading, setError } =
-    useTeacherStore();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
-  );
-  const [dataSource, setDataSource] = useState<'api' | 'mock' | 'empty'>('api');
-  const [apiStatus, setApiStatus] = useState<
-    'loading' | 'success' | 'error' | 'idle'
-  >('idle');
-  const hasFetchedData = useRef(false);
 
-  // Check if user is actually a teacher
-  useEffect(() => {
-    if (user && user.role !== 'teacher') {
-      if (user.role === 'admin') {
-        // Use router.push instead of window.location for better navigation
-        router.push('/admin/dashboard');
-      }
-    }
-  }, [user, router]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchDashboardData = async () => {
-      // Prevent multiple fetches
-      if (hasFetchedData.current) {
-        return;
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced timeout for mobile
-
-      try {
-        setLoading(true);
-        setError(null);
-        setApiStatus('loading');
-        hasFetchedData.current = true;
-
-        // Get the session token
-        const {
-          data: { session: currentSession },
-        } = await supabase.auth.getSession();
-
-        if (!isMounted) return; // Check if component is still mounted
-
-        if (!currentSession?.access_token) {
-          throw new Error('No authentication token available');
-        }
-
-        const response = await fetch('/api/teacher/dashboard', {
-          headers: {
-            Authorization: `Bearer ${currentSession.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal, // Add abort signal
-        });
-
-        clearTimeout(timeoutId); // Clear timeout if request succeeds
-
-        if (!isMounted) return; // Check if component is still mounted
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch dashboard data');
-        }
-
-        if (!isMounted) return; // Check if component is still mounted
-
-        // Successfully fetched data from API
-        setDashboardData(data);
-        setBalance(data.balance || 0); // Handle null/undefined balance
-        setTransactions(data.recent_transactions || []); // Handle null/undefined transactions
-        setApiStatus('success');
-
-        // Determine data source based on actual content
-        if (
-          data.balance === 0 &&
-          (!data.recent_transactions || data.recent_transactions.length === 0)
-        ) {
-          setDataSource('empty'); // API worked but user has no data
-        } else {
-          setDataSource('api'); // API worked and has real data
-        }
-
-        // Clear any previous errors since API call succeeded
-        setError(null);
-      } catch (error) {
-        clearTimeout(timeoutId); // Clear timeout on error
-
-        if (!isMounted) return; // Check if component is still mounted
-
-        // Handle aborted requests (user navigated away or timeout)
-        if (error instanceof Error && error.name === 'AbortError') {
-          // Request was aborted, don't show error to user
-          return;
-        }
-
-        // Log error for debugging (only in development)
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.error('Dashboard API Error:', error);
-        }
-
-        setApiStatus('error');
-        setDataSource('mock'); // Using mock data due to API failure
-        setError(
-          error instanceof Error ? error.message : 'Failed to load dashboard'
-        );
-
-        // Only set mock data if API completely fails (not if data is just empty)
-        // This distinguishes between API failure vs empty legitimate data
-        const defaultData: DashboardData = {
-          user: {
-            id: user?.id || '',
-            full_name: user?.full_name || 'Miss Vida Opokuah (Demo)',
-            employee_id: user?.employee_id || 'EMP001',
-            management_unit: user?.management_unit || 'Demo Unit',
-            email: user?.email || '',
-            phone_number: user?.phone_number,
-          },
-          balance: 12450.75,
-          monthlyContribution: 1250.5,
-          monthlyTarget: 1500,
-          contributionCount: 3,
-          recent_transactions: [
-            {
-              id: '1',
-              user_id: user?.id || '',
-              amount: 500.0,
-              transaction_type: 'momo',
-              transaction_date: new Date('2024-01-15'),
-              description: 'Mobile Money Payment',
-              status: 'completed',
-              balance: 12450.75,
-            },
-            {
-              id: '2',
-              user_id: user?.id || '',
-              amount: 750.5,
-              transaction_type: 'controller',
-              transaction_date: new Date('2024-01-01'),
-              description: 'Controller Deduction',
-              status: 'completed',
-              balance: 11950.75,
-            },
-            {
-              id: '3',
-              user_id: user?.id || '',
-              amount: 125.25,
-              transaction_type: 'interest',
-              transaction_date: new Date('2023-12-28'),
-              description: 'Interest Payment',
-              status: 'completed',
-              balance: 11200.25,
-            },
-            {
-              id: '4',
-              user_id: user?.id || '',
-              amount: 600.0,
-              transaction_type: 'momo',
-              transaction_date: new Date('2023-12-15'),
-              description: 'Mobile Money Payment',
-              status: 'completed',
-              balance: 11075.0,
-            },
-          ],
-          monthly_summary: {
-            total: 1250.5,
-            momo: 500.0,
-            controller: 750.5,
-            interest: 0,
-          },
-        };
-        setDashboardData(defaultData);
-        setBalance(12450.75);
-        setTransactions(defaultData.recent_transactions);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    if (user && !hasFetchedData.current) {
-      fetchDashboardData();
-    }
-
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      // Reset the flag if component unmounts during fetch
-      if (hasFetchedData.current) {
-        hasFetchedData.current = false;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Store setters are stable and don't need to be in deps
-
-  // Early return if user is not a teacher
-  if (user && user.role !== 'teacher') {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
-          <p className='mt-4 text-gray-600 dark:text-gray-400'>
-            Redirecting to appropriate dashboard...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Use the optimized hook for data fetching
+  const { dashboardData, dataSource, apiStatus, loading } = useTeacherData();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GH', {
@@ -305,7 +62,11 @@ export default function TeacherDashboard() {
     );
   };
 
-  if (loading || apiStatus === 'loading') {
+  if (
+    loading ||
+    apiStatus === 'loading' ||
+    (user && !dashboardData && apiStatus === 'idle')
+  ) {
     return (
       <TeacherRoute>
         <Layout>
@@ -316,28 +77,10 @@ export default function TeacherDashboard() {
               <div className='mb-6 md:mb-8'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                   <div>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={350}
-                      height={40}
-                      animation='pulse'
-                      className='rounded-lg mb-3'
-                    />
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={280}
-                      height={20}
-                      animation='pulse'
-                      className='rounded-lg'
-                    />
+                    <div className='h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 w-80 animate-pulse'></div>
+                    <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-60 animate-pulse'></div>
                   </div>
-                  <MuiSkeletonComponent
-                    variant='rectangular'
-                    width={80}
-                    height={32}
-                    animation='pulse'
-                    className='rounded-full'
-                  />
+                  <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse'></div>
                 </div>
               </div>
 
@@ -353,50 +96,14 @@ export default function TeacherDashboard() {
                       <div className='space-y-4'>
                         <div className='flex items-center justify-between'>
                           <div className='space-y-2'>
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={150}
-                              height={24}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={200}
-                              height={16}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
+                            <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-36 animate-pulse'></div>
+                            <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-48 animate-pulse'></div>
                           </div>
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={48}
-                            height={48}
-                            animation='pulse'
-                            className='rounded-full'
-                          />
+                          <div className='h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse'></div>
                         </div>
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={160}
-                          height={40}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={120}
-                          height={20}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width='100%'
-                          height={48}
-                          animation='pulse'
-                          className='rounded-xl'
-                        />
+                        <div className='h-10 bg-gray-200 dark:bg-gray-700 rounded-md w-40 animate-pulse'></div>
+                        <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-md w-30 animate-pulse'></div>
+                        <div className='h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full animate-pulse'></div>
                       </div>
                     </CardContent>
                   </Card>
@@ -414,20 +121,8 @@ export default function TeacherDashboard() {
                     <CardContent className='p-6'>
                       <div className='space-y-4'>
                         <div className='flex items-center justify-between'>
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={150}
-                            height={24}
-                            animation='pulse'
-                            className='rounded-md'
-                          />
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={80}
-                            height={20}
-                            animation='pulse'
-                            className='rounded-md'
-                          />
+                          <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-36 animate-pulse'></div>
+                          <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-md w-20 animate-pulse'></div>
                         </div>
                         <div className='space-y-3'>
                           {Array.from({ length: 4 }).map((_, i) => (
@@ -435,20 +130,8 @@ export default function TeacherDashboard() {
                               key={i}
                               className='flex items-center justify-between'
                             >
-                              <MuiSkeletonComponent
-                                variant='rectangular'
-                                width={100}
-                                height={16}
-                                animation='pulse'
-                                className='rounded-md'
-                              />
-                              <MuiSkeletonComponent
-                                variant='rectangular'
-                                width={80}
-                                height={20}
-                                animation='pulse'
-                                className='rounded-md'
-                              />
+                              <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-24 animate-pulse'></div>
+                              <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-md w-20 animate-pulse'></div>
                             </div>
                           ))}
                         </div>
@@ -563,7 +246,7 @@ export default function TeacherDashboard() {
             {/* Total Savings Balance Card */}
             <Card
               variant='glass'
-              className=' border-white/20 bg-white/80 dark:bg-slate-800/80'
+              className=' border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl'
             >
               <CardContent className='p-2 md:p-6'>
                 <div className='flex items-center justify-between mb-4'>
@@ -611,7 +294,7 @@ export default function TeacherDashboard() {
             {/* This Month's Contribution Card */}
             <Card
               variant='glass'
-              className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl'
             >
               <CardContent className='p-2 md:p-6'>
                 <div className='flex items-center justify-between mb-4'>
