@@ -48,10 +48,7 @@ export default function ProtectedRoute({
         // User is not authenticated, redirect to login
         setError('Please log in to access this page');
         hasRedirectedRef.current = true;
-        // Use setTimeout to defer navigation and avoid render-time setState
-        setTimeout(() => {
-          router.replace('/auth/login');
-        }, 0);
+        router.replace('/auth/login');
         return;
       }
 
@@ -62,17 +59,14 @@ export default function ProtectedRoute({
         );
         hasRedirectedRef.current = true;
 
-        // Use setTimeout to defer navigation and avoid render-time setState
-        setTimeout(() => {
-          // Redirect based on user's actual role
-          if (user.role === 'teacher') {
-            router.replace('/teacher/dashboard');
-          } else if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-          } else {
-            router.replace('/dashboard');
-          }
-        }, 0);
+        // Redirect based on user's actual role
+        if (user.role === 'teacher') {
+          router.replace('/teacher/dashboard');
+        } else if (user.role === 'admin') {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/dashboard');
+        }
         return;
       }
 
@@ -108,10 +102,7 @@ export default function ProtectedRoute({
     // Force redirect to login if we somehow got here without a user
     if (!hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
-      // Use setTimeout to defer navigation and avoid render-time setState
-      setTimeout(() => {
-        router.replace('/auth/login');
-      }, 0);
+      router.replace('/auth/login');
     }
 
     return (
@@ -153,7 +144,7 @@ export function withRoleProtection<P extends object>(
   };
 }
 
-// Specific route protection components
+// Specific route protection components with optimized checks
 export function TeacherRoute({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute requiredRole='teacher'>{children}</ProtectedRoute>;
 }
@@ -171,17 +162,14 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && user && !hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
-      // Use setTimeout to defer navigation and avoid render-time setState
-      setTimeout(() => {
-        // User is authenticated, redirect to appropriate dashboard
-        if (user.role === 'teacher') {
-          router.replace('/teacher/dashboard');
-        } else if (user.role === 'admin') {
-          router.replace('/admin/dashboard');
-        } else {
-          router.replace('/dashboard');
-        }
-      }, 0);
+      // User is authenticated, redirect to appropriate dashboard
+      if (user.role === 'teacher') {
+        router.replace('/teacher/dashboard');
+      } else if (user.role === 'admin') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/dashboard');
+      }
     }
   }, [user, loading, router]);
 

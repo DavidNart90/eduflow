@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { generateBreadcrumbs } from '@/lib/navigation';
 import { ChevronRightIcon, HomeIcon } from '@heroicons/react/24/outline';
 

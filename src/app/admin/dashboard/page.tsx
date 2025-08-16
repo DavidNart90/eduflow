@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
+import { useAdminData } from '@/hooks/useAdminData';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardHeader, CardContent, Button, Badge } from '@/components/ui';
-import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   CurrencyDollarIcon,
   DocumentTextIcon,
@@ -20,92 +20,10 @@ import {
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
-interface DashboardData {
-  totalTeachers: number;
-  totalMoMo: number;
-  totalController: number;
-  interestPaid: number;
-  pendingReports: number;
-  recentActivities: Array<{
-    id: string;
-    type: string;
-    description: string;
-    amount?: string;
-    time: string;
-    status: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }>;
-}
-
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [dashboardData] = useState<DashboardData>({
-    totalTeachers: 1247,
-    totalMoMo: 456890,
-    totalController: 789234,
-    interestPaid: 23456,
-    pendingReports: 3,
-    recentActivities: [
-      {
-        id: '1',
-        type: 'Controller report uploaded',
-        description: 'Controller report uploaded for December 2024',
-        amount: '145 records processed • 2 hours ago',
-        time: '2 hours ago',
-        status: 'Processed',
-        icon: DocumentArrowUpIcon,
-      },
-      {
-        id: '2',
-        type: 'New teacher account created',
-        description: 'New teacher account created: John Asante',
-        amount: 'Teacher ID: TCH001247 • 5 hours ago',
-        time: '5 hours ago',
-        status: 'New',
-        icon: UsersIcon,
-      },
-      {
-        id: '3',
-        type: 'Monthly report generated',
-        description: 'Monthly report generated for November 2024',
-        amount: 'Sent to 1,240 teachers • 1 day ago',
-        time: '1 day ago',
-        status: 'Completed',
-        icon: DocumentTextIcon,
-      },
-      {
-        id: '4',
-        type: 'Quarterly interest payment processed',
-        description: 'Quarterly interest payment processed',
-        amount: '₵23,456 distributed to 1,240 accounts • 2 days ago',
-        time: '2 days ago',
-        status: 'Completed',
-        icon: CurrencyDollarIcon,
-      },
-      {
-        id: '5',
-        type: 'System maintenance completed',
-        description: 'Database backup and optimization completed',
-        amount: 'Backup size: 2.3GB • 3 days ago',
-        time: '3 days ago',
-        status: 'Completed',
-        icon: CogIcon,
-      },
-    ],
-  });
-
-  // Simulate loading state
-  useEffect(() => {
-    const loadData = async () => {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsLoading(false);
-    };
-
-    loadData();
-  }, []);
+  const { dashboardData, isLoading, error, refetch } = useAdminData();
 
   // Check if user is actually an admin
   useEffect(() => {
@@ -155,6 +73,51 @@ export default function AdminDashboard() {
     );
   };
 
+  const getIconComponent = (iconName: string) => {
+    const icons = {
+      DocumentArrowUpIcon,
+      UsersIcon,
+      DocumentTextIcon,
+      CurrencyDollarIcon,
+      CogIcon,
+    };
+    return icons[iconName as keyof typeof icons] || DocumentTextIcon;
+  };
+
+  // Error state
+  if (error) {
+    return (
+      <AdminRoute>
+        <Layout>
+          <div className='p-4 md:p-6 min-h-screen'>
+            <div className='text-center py-12'>
+              <div className='text-red-500 mb-4'>
+                <svg
+                  className='w-12 h-12 mx-auto'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z'
+                  />
+                </svg>
+              </div>
+              <h3 className='text-lg font-medium text-gray-900 dark:text-white mb-2'>
+                Failed to load dashboard data
+              </h3>
+              <p className='text-gray-600 dark:text-gray-400 mb-4'>{error}</p>
+              <Button onClick={refetch}>Try Again</Button>
+            </div>
+          </div>
+        </Layout>
+      </AdminRoute>
+    );
+  }
+
   return (
     <AdminRoute>
       <Layout>
@@ -164,184 +127,84 @@ export default function AdminDashboard() {
             <div className='space-y-8'>
               {/* Header Skeleton */}
               <div className='space-y-4'>
-                <MuiSkeletonComponent
-                  variant='rectangular'
-                  width={300}
-                  height={40}
-                  animation='pulse'
-                  className='rounded-lg'
-                />
-                <MuiSkeletonComponent
-                  variant='rectangular'
-                  width={400}
-                  height={20}
-                  animation='pulse'
-                  className='rounded-lg'
-                />
+                <div className='h-10 bg-gray-200 dark:bg-gray-700 rounded-lg w-80 animate-pulse'></div>
+                <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-96 animate-pulse'></div>
               </div>
 
               {/* Summary Cards Skeleton */}
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <Card key={index} variant='glass' className='h-40'>
-                    <CardContent>
-                      <div className='space-y-4'>
-                        <div className='flex items-center justify-between'>
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={80}
-                            height={20}
-                            animation='pulse'
-                            className='rounded-md'
-                          />
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={40}
-                            height={40}
-                            animation='pulse'
-                            className='rounded-full'
-                          />
-                        </div>
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={120}
-                          height={32}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={100}
-                          height={16}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div
+                    key={index}
+                    className='bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/20 p-6 space-y-4'
+                  >
+                    <div className='flex items-center justify-between'>
+                      <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse'></div>
+                      <div className='h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse'></div>
+                    </div>
+                    <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse'></div>
+                    <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse'></div>
+                  </div>
                 ))}
               </div>
 
               {/* Action Buttons Skeleton */}
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <MuiSkeletonComponent
+                  <div
                     key={index}
-                    variant='rectangular'
-                    width='100%'
-                    height={64}
-                    animation='pulse'
-                    className='rounded-xl'
-                  />
+                    className='h-16 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse'
+                  ></div>
                 ))}
               </div>
 
               {/* Quick Stats Skeleton */}
               <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                 {Array.from({ length: 2 }).map((_, index) => (
-                  <Card key={index} variant='glass' className='h-64'>
-                    <CardContent>
-                      <div className='space-y-4'>
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={150}
-                          height={24}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                        <div className='space-y-3'>
-                          {Array.from({ length: 3 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className='flex items-center justify-between'
-                            >
-                              <MuiSkeletonComponent
-                                variant='rectangular'
-                                width={120}
-                                height={16}
-                                animation='pulse'
-                                className='rounded-md'
-                              />
-                              <MuiSkeletonComponent
-                                variant='rectangular'
-                                width={60}
-                                height={20}
-                                animation='pulse'
-                                className='rounded-md'
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Recent Activities Skeleton */}
-              <Card variant='glass' className='min-h-96'>
-                <CardContent>
-                  <div className='space-y-6'>
-                    <div className='flex items-center justify-between'>
-                      <MuiSkeletonComponent
-                        variant='rectangular'
-                        width={150}
-                        height={24}
-                        animation='pulse'
-                        className='rounded-md'
-                      />
-                      <MuiSkeletonComponent
-                        variant='rectangular'
-                        width={80}
-                        height={32}
-                        animation='pulse'
-                        className='rounded-md'
-                      />
-                    </div>
-                    <div className='space-y-4'>
-                      {Array.from({ length: 5 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className='bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/20 p-6 space-y-4 h-64'
+                  >
+                    <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded w-36 animate-pulse'></div>
+                    <div className='space-y-3'>
+                      {Array.from({ length: 3 }).map((_, i) => (
                         <div
-                          key={index}
-                          className='flex items-center space-x-4 p-4 rounded-lg border border-white/20'
+                          key={i}
+                          className='flex items-center justify-between'
                         >
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={40}
-                            height={40}
-                            animation='pulse'
-                            className='rounded-lg'
-                          />
-                          <div className='flex-1 space-y-2'>
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={200}
-                              height={16}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={150}
-                              height={14}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
-                          </div>
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={60}
-                            height={20}
-                            animation='pulse'
-                            className='rounded-md'
-                          />
+                          <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse'></div>
+                          <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse'></div>
                         </div>
                       ))}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
+
+              {/* Recent Activities Skeleton */}
+              <div className='bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/20 p-6 space-y-6 min-h-96'>
+                <div className='flex items-center justify-between'>
+                  <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded w-36 animate-pulse'></div>
+                  <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse'></div>
+                </div>
+                <div className='space-y-4'>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className='flex items-center space-x-4 p-4 rounded-lg border border-white/20'
+                    >
+                      <div className='h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse'></div>
+                      <div className='flex-1 space-y-2'>
+                        <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse'></div>
+                        <div className='h-3 bg-gray-200 dark:bg-gray-700 rounded w-36 animate-pulse'></div>
+                      </div>
+                      <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse'></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          ) : (
+          ) : dashboardData ? (
             <>
               {/* Dashboard Overview Header */}
               <div className='mb-6 md:mb-8'>
@@ -371,7 +234,7 @@ export default function AdminDashboard() {
                 {/* Total Teachers Card */}
                 <Card
                   variant='glass'
-                  className='group hover:scale-105 transition-all duration-300 border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  className='hover:shadow-xl border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
                   <CardContent className='p-6'>
                     <div className='flex items-center justify-between mb-4'>
@@ -404,7 +267,7 @@ export default function AdminDashboard() {
                 {/* Total Savings (MoMo) Card */}
                 <Card
                   variant='glass'
-                  className='group hover:scale-105 transition-all duration-300 border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  className='hover:shadow-xl border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
                   <CardContent className='p-6'>
                     <div className='flex items-center justify-between mb-4'>
@@ -437,7 +300,7 @@ export default function AdminDashboard() {
                 {/* Total Savings (Controller) Card */}
                 <Card
                   variant='glass'
-                  className='group hover:scale-105 transition-all duration-300 border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  className='hover:shadow-xl border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
                   <CardContent className='p-6'>
                     <div className='flex items-center justify-between mb-4'>
@@ -470,7 +333,7 @@ export default function AdminDashboard() {
                 {/* Interest Paid Card */}
                 <Card
                   variant='glass'
-                  className='group hover:scale-105 transition-all duration-300 border-white/20 bg-white/80 dark:bg-slate-800/80'
+                  className='hover:shadow-xl border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
                   <CardContent className='p-6'>
                     <div className='flex items-center justify-between mb-4'>
@@ -648,36 +511,39 @@ export default function AdminDashboard() {
                 />
                 <CardContent>
                   <div className='space-y-4'>
-                    {dashboardData.recentActivities.map(activity => (
-                      <div
-                        key={activity.id}
-                        className='flex items-center justify-between p-4 bg-gradient-to-r from-slate-50/80 to-gray-50/80 dark:from-slate-800/80 dark:to-gray-800/80 rounded-xl border border-slate-200/50 dark:border-slate-600/50 hover:shadow-lg transition-all duration-300'
-                      >
-                        <div className='flex items-center md:space-x-4 max-sm:space-x-1'>
-                          <div className='flex-shrink-0 '>
-                            <div className='p-3 rounded-xl max-sm:hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600'>
-                              <activity.icon className='h-5 w-5 text-slate-600 dark:text-slate-300 ' />
+                    {dashboardData.recentActivities.map(activity => {
+                      const IconComponent = getIconComponent(activity.icon);
+                      return (
+                        <div
+                          key={activity.id}
+                          className='flex items-center justify-between p-4 bg-gradient-to-r from-slate-50/80 to-gray-50/80 dark:from-slate-800/80 dark:to-gray-800/80 rounded-xl border border-slate-200/50 dark:border-slate-600/50 hover:shadow-lg transition-all duration-300'
+                        >
+                          <div className='flex items-center md:space-x-4 max-sm:space-x-1'>
+                            <div className='flex-shrink-0 '>
+                              <div className='p-3 rounded-xl max-sm:hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600'>
+                                <IconComponent className='h-5 w-5 text-slate-600 dark:text-slate-300' />
+                              </div>
+                            </div>
+                            <div className='flex-1'>
+                              <p className='text-sm font-medium text-slate-900 dark:text-white'>
+                                {activity.description}
+                              </p>
+                              <p className='text-sm text-slate-500 dark:text-slate-400'>
+                                {activity.amount}
+                              </p>
                             </div>
                           </div>
-                          <div className='flex-1'>
-                            <p className='text-sm font-medium text-slate-900 dark:text-white'>
-                              {activity.description}
-                            </p>
-                            <p className='text-sm text-slate-500 dark:text-slate-400'>
-                              {activity.amount}
-                            </p>
+                          <div className='flex items-center space-x-2'>
+                            {getStatusBadge(activity.status)}
                           </div>
                         </div>
-                        <div className='flex items-center space-x-2'>
-                          {getStatusBadge(activity.status)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
             </>
-          )}
+          ) : null}
         </div>
       </Layout>
     </AdminRoute>

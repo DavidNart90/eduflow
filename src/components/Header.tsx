@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-optimized';
 import { useTheme } from '@/lib/theme-context';
 import { Button } from '@/components/ui';
 import { Badge } from '@/components/ui';
