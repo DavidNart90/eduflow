@@ -32,6 +32,18 @@ interface TeacherDashboardData {
     momo: number;
     controller: number;
     interest: number;
+    contributionCount: number;
+  };
+  trend_percentage: number;
+  current_month_year: {
+    month: string;
+    year: number;
+  };
+  total_contributions: {
+    total: number;
+    momo: number;
+    controller: number;
+    count: number;
   };
 }
 
@@ -156,6 +168,18 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
             momo: 500.0,
             controller: 750.5,
             interest: 0,
+            contributionCount: 3,
+          },
+          trend_percentage: 5.2,
+          current_month_year: {
+            month: 'January',
+            year: 2024,
+          },
+          total_contributions: {
+            total: 12450.75,
+            momo: 5000.0,
+            controller: 7450.75,
+            count: 15,
           },
         };
 
