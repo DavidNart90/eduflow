@@ -91,27 +91,45 @@ export async function GET(request: NextRequest) {
       // Continue without balance data
     }
 
-    // Get recent transactions (last 10)
+    // Get recent transactions (last 5) - all statuses for transaction history
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const { data: transactions, error: transactionsError } = await supabaseAdmin
       .from('savings_transactions')
       .select('*')
       .eq('user_id', user.id)
-      .order('transaction_date', { ascending: false })
-      .limit(10);
+      .in('status', ['pending', 'completed', 'failed']) // Include all statuses
+      .order('created_at', { ascending: false })
+      .limit(5);
 
     if (transactionsError) {
       // Continue without transactions data
     }
+
+    // Calculate running balance for recent transactions
+    let runningBalance = balanceData?.total_balance || 0;
+    const transactionsWithBalance = (transactions || []).map(transaction => {
+      const transactionWithBalance = {
+        ...transaction,
+        balance: runningBalance,
+      };
+      // For the next transaction (going backwards), subtract this transaction
+      runningBalance -= transaction.amount;
+      return transactionWithBalance;
+    });
 
     // Get monthly contribution summary
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
 
+    // Get current month data with completed transactions only
     const { data: monthlyData, error: monthlyError } = await supabaseAdmin
       .from('savings_transactions')
-      .select('amount, transaction_type')
+      .select('amount, transaction_type, status')
       .eq('user_id', user.id)
+      .eq('status', 'completed')
       .gte(
         'transaction_date',
         `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
@@ -125,21 +143,105 @@ export async function GET(request: NextRequest) {
       // Continue without monthly data
     }
 
+    // Get previous month data for trend calculation
+    const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+    const { data: previousMonthData, error: previousMonthError } =
+      await supabaseAdmin
+        .from('savings_transactions')
+        .select('amount, transaction_type')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .gte(
+          'transaction_date',
+          `${previousYear}-${previousMonth.toString().padStart(2, '0')}-01`
+        )
+        .lt(
+          'transaction_date',
+          `${previousYear}-${(previousMonth + 1).toString().padStart(2, '0')}-01`
+        );
+
+    if (previousMonthError) {
+      // Continue without previous month data
+    }
+
     // Calculate monthly summary
     const monthlySummary = {
       total: 0,
       momo: 0,
       controller: 0,
       interest: 0,
+      contributionCount: 0,
     };
 
+    // Calculate total contributions (excluding interest) and count
     if (monthlyData) {
       monthlyData.forEach(transaction => {
         monthlySummary.total += transaction.amount;
-        if (transaction.transaction_type in monthlySummary) {
-          monthlySummary[
-            transaction.transaction_type as keyof typeof monthlySummary
-          ] += transaction.amount;
+
+        // Handle transaction types - treat 'deposit' as 'momo' for backward compatibility
+        if (
+          transaction.transaction_type === 'momo' ||
+          transaction.transaction_type === 'deposit'
+        ) {
+          monthlySummary.momo += transaction.amount;
+          monthlySummary.contributionCount++;
+        } else if (transaction.transaction_type === 'controller') {
+          monthlySummary.controller += transaction.amount;
+          monthlySummary.contributionCount++;
+        } else if (transaction.transaction_type === 'interest') {
+          monthlySummary.interest += transaction.amount;
+          // Don't count interest as a contribution
+        }
+      });
+    }
+
+    // Calculate previous month total for trend
+    let previousMonthTotal = 0;
+    if (previousMonthData) {
+      previousMonthTotal = previousMonthData.reduce(
+        (sum, transaction) => sum + transaction.amount,
+        0
+      );
+    }
+
+    // Calculate trend percentage
+    let trendPercentage = 0;
+    if (previousMonthTotal > 0) {
+      trendPercentage =
+        ((monthlySummary.total - previousMonthTotal) / previousMonthTotal) *
+        100;
+    } else if (monthlySummary.total > 0) {
+      trendPercentage = 100; // First month with contributions
+    }
+
+    // Get total contributions breakdown (all time) - include both momo and deposit for backward compatibility
+    const { data: totalContributionsData } = await supabaseAdmin
+      .from('savings_transactions')
+      .select('amount, transaction_type')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .in('transaction_type', ['momo', 'controller', 'deposit']);
+
+    const totalContributionBreakdown = {
+      total: 0,
+      momo: 0,
+      controller: 0,
+      count: 0,
+    };
+
+    if (totalContributionsData) {
+      totalContributionsData.forEach(transaction => {
+        totalContributionBreakdown.total += transaction.amount;
+        totalContributionBreakdown.count++;
+        if (
+          transaction.transaction_type === 'momo' ||
+          transaction.transaction_type === 'deposit'
+        ) {
+          totalContributionBreakdown.momo += transaction.amount;
+        } else if (transaction.transaction_type === 'controller') {
+          totalContributionBreakdown.controller += transaction.amount;
         }
       });
     }
@@ -154,8 +256,14 @@ export async function GET(request: NextRequest) {
         phone_number: user.phone_number,
       },
       balance: balanceData?.total_balance || 0,
-      recent_transactions: transactions || [],
+      recent_transactions: transactionsWithBalance,
       monthly_summary: monthlySummary,
+      trend_percentage: trendPercentage,
+      current_month_year: {
+        month: currentDate.toLocaleDateString('en-US', { month: 'long' }),
+        year: currentYear,
+      },
+      total_contributions: totalContributionBreakdown,
     });
   } catch {
     return NextResponse.json(

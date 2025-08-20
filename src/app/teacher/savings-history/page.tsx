@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { supabase } from '@/lib/supabase';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import {
@@ -27,10 +28,12 @@ import {
 } from '@heroicons/react/24/outline';
 
 interface SavingsHistoryData {
-  totalBalance: number;
-  totalMomoContributions: number;
-  totalControllerContributions: number;
-  interestEarned: number;
+  summary: {
+    totalBalance: number;
+    totalMomoContributions: number;
+    totalControllerContributions: number;
+    interestEarned: number;
+  };
   transactions: Array<{
     id: string;
     date: string;
@@ -38,7 +41,14 @@ interface SavingsHistoryData {
     source: 'momo' | 'controller' | 'interest' | 'withdrawal';
     amount: number;
     runningBalance: number;
+    status: string;
   }>;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
 }
 
 interface FilterState {
@@ -50,10 +60,12 @@ interface FilterState {
 
 // Mock data for demonstration - replace with actual API call
 const mockData: SavingsHistoryData = {
-  totalBalance: 8649.85,
-  totalMomoContributions: 3250.0,
-  totalControllerContributions: 4815.6,
-  interestEarned: 584.25,
+  summary: {
+    totalBalance: 8649.85,
+    totalMomoContributions: 3250.0,
+    totalControllerContributions: 4815.6,
+    interestEarned: 584.25,
+  },
   transactions: [
     {
       id: '1',
@@ -62,6 +74,7 @@ const mockData: SavingsHistoryData = {
       source: 'momo',
       amount: 75.0,
       runningBalance: 8594.85,
+      status: 'completed',
     },
     {
       id: '2',
@@ -70,6 +83,7 @@ const mockData: SavingsHistoryData = {
       source: 'controller',
       amount: 75.0,
       runningBalance: 8519.85,
+      status: 'completed',
     },
     {
       id: '3',
@@ -78,6 +92,7 @@ const mockData: SavingsHistoryData = {
       source: 'momo',
       amount: 50.0,
       runningBalance: 8544.85,
+      status: 'completed',
     },
     {
       id: '4',
@@ -86,6 +101,7 @@ const mockData: SavingsHistoryData = {
       source: 'withdrawal',
       amount: -3477.0,
       runningBalance: 5217.85,
+      status: 'completed',
     },
     {
       id: '5',
@@ -94,8 +110,15 @@ const mockData: SavingsHistoryData = {
       source: 'interest',
       amount: 984.25,
       runningBalance: 8069.85,
+      status: 'completed',
     },
   ],
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 5,
+    itemsPerPage: 10,
+  },
 };
 
 export default function SavingsHistoryPage() {
@@ -113,28 +136,57 @@ export default function SavingsHistoryPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    const fetchSavingsHistory = () => {
+    const fetchSavingsHistory = async () => {
       try {
         setLoading(true);
 
-        // For now, using mock data
-        // In production, replace with actual API call
-        setTimeout(() => {
-          setData(mockData);
-          setLoading(false);
-        }, 3000);
+        // Get the session token
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        // Actual implementation would be:
-        // const response = await fetch('/api/teacher/savings-history', {
-        //   headers: {
-        //     Authorization: `Bearer ${session.access_token}`,
-        //   },
-        // });
-        // const result = await response.json();
-        // setData(result);
+        if (sessionError || !session) {
+          // Fallback to mock data if no session
+          setTimeout(() => {
+            setData(mockData);
+            setLoading(false);
+          }, 1000);
+          return;
+        }
+
+        // Build query parameters
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+        });
+
+        if (filters.startDate)
+          queryParams.append('startDate', filters.startDate);
+        if (filters.endDate) queryParams.append('endDate', filters.endDate);
+        if (filters.source && filters.source !== 'all')
+          queryParams.append('source', filters.source);
+        if (filters.search) queryParams.append('search', filters.search);
+
+        const response = await fetch(
+          `/api/teacher/savings-history?${queryParams}`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch savings history');
+        }
+
+        const result = await response.json();
+        setData(result);
+        setLoading(false);
       } catch {
-        // In development, we'll skip logging the error
-        setData(mockData); // Fallback to mock data
+        // Fallback to mock data on error
+        setData(mockData);
         setLoading(false);
       }
     };
@@ -142,7 +194,7 @@ export default function SavingsHistoryPage() {
     if (user) {
       fetchSavingsHistory();
     }
-  }, [user]);
+  }, [user, currentPage, filters]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GH', {
@@ -185,29 +237,33 @@ export default function SavingsHistoryPage() {
     );
   };
 
-  // Filter and paginate transactions
-  const filteredTransactions =
-    data?.transactions.filter(transaction => {
-      if (filters.source !== 'all' && transaction.source !== filters.source) {
-        return false;
-      }
-      if (
-        filters.search &&
-        !transaction.description
-          .toLowerCase()
-          .includes(filters.search.toLowerCase())
-      ) {
-        return false;
-      }
-      // Add date filtering logic here if needed
-      return true;
-    }) || [];
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      completed: 'success',
+      pending: 'warning',
+      failed: 'error',
+    } as const;
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = filteredTransactions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    const labels = {
+      completed: 'Completed',
+      pending: 'Pending',
+      failed: 'Failed',
+    };
+
+    return (
+      <Badge
+        variant={variants[status as keyof typeof variants] || 'secondary'}
+        size='sm'
+      >
+        {labels[status as keyof typeof labels] || status}
+      </Badge>
+    );
+  };
+
+  // Filter and paginate transactions
+  const filteredTransactions = data?.transactions || [];
+  const totalPages = data?.pagination?.totalPages || 1;
+  const paginatedTransactions = filteredTransactions;
 
   const handleExportCSV = () => {
     // Implementation for CSV export
@@ -221,6 +277,7 @@ export default function SavingsHistoryPage() {
 
   const handleApplyFilters = () => {
     setCurrentPage(1); // Reset to first page when filters change
+    // The useEffect will automatically refetch data when filters change
   };
 
   if (loading) {
@@ -462,7 +519,7 @@ export default function SavingsHistoryPage() {
                         Total Savings Balance
                       </p>
                       <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
-                        {data && formatCurrency(data.totalBalance)}
+                        {data && formatCurrency(data.summary.totalBalance)}
                       </p>
                     </div>
                   </div>
@@ -485,7 +542,8 @@ export default function SavingsHistoryPage() {
                         MoMo Contributions
                       </p>
                       <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
-                        {data && formatCurrency(data.totalMomoContributions)}
+                        {data &&
+                          formatCurrency(data.summary.totalMomoContributions)}
                       </p>
                     </div>
                   </div>
@@ -509,7 +567,9 @@ export default function SavingsHistoryPage() {
                       </p>
                       <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
                         {data &&
-                          formatCurrency(data.totalControllerContributions)}
+                          formatCurrency(
+                            data.summary.totalControllerContributions
+                          )}
                       </p>
                     </div>
                   </div>
@@ -532,7 +592,7 @@ export default function SavingsHistoryPage() {
                         Interest Earned
                       </p>
                       <p className='text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent truncate'>
-                        {data && formatCurrency(data.interestEarned)}
+                        {data && formatCurrency(data.summary.interestEarned)}
                       </p>
                     </div>
                   </div>
@@ -684,6 +744,9 @@ export default function SavingsHistoryPage() {
                         <th className='px-6 py-4 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
                           Amount (GHS)
                         </th>
+                        <th className='px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
+                          Status
+                        </th>
                         <th className='px-6 py-4 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider'>
                           Running Balance
                         </th>
@@ -693,7 +756,7 @@ export default function SavingsHistoryPage() {
                       {loading ? (
                         <tr>
                           <td
-                            colSpan={5}
+                            colSpan={6}
                             className='px-6 py-8 text-center text-slate-500 dark:text-slate-400'
                           >
                             <div className='flex items-center justify-center space-x-2'>
@@ -704,7 +767,7 @@ export default function SavingsHistoryPage() {
                         </tr>
                       ) : paginatedTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className='px-6 py-12 text-center'>
+                          <td colSpan={6} className='px-6 py-12 text-center'>
                             <div className='flex flex-col items-center space-y-3'>
                               <div className='w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center'>
                                 <DocumentArrowDownIcon className='h-8 w-8 text-slate-400' />
@@ -742,14 +805,21 @@ export default function SavingsHistoryPage() {
                             <td className='px-6 py-4 text-sm text-right whitespace-nowrap font-semibold'>
                               <span
                                 className={
-                                  transaction.amount < 0
+                                  transaction.status === 'failed'
                                     ? 'text-red-600 dark:text-red-400'
-                                    : 'text-green-600 dark:text-green-400'
+                                    : transaction.status === 'pending'
+                                      ? 'text-yellow-600 dark:text-yellow-400'
+                                      : transaction.amount < 0
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-green-600 dark:text-green-400'
                                 }
                               >
                                 {transaction.amount < 0 ? '-' : '+'}
                                 {formatCurrency(transaction.amount)}
                               </span>
+                            </td>
+                            <td className='px-6 py-4 text-sm text-center whitespace-nowrap'>
+                              {getStatusBadge(transaction.status)}
                             </td>
                             <td className='px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-right whitespace-nowrap font-bold'>
                               {formatCurrency(transaction.runningBalance)}
@@ -766,7 +836,9 @@ export default function SavingsHistoryPage() {
                   <div className='mt-8 flex justify-center'>
                     <div className='bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700'>
                       <Pagination
-                        currentPage={currentPage}
+                        currentPage={
+                          data?.pagination?.currentPage || currentPage
+                        }
                         totalPages={totalPages}
                         onPageChange={setCurrentPage}
                       />

@@ -59,21 +59,21 @@ export default function AddSavingsPage() {
   // Mobile networks data with actual images
   const mobileNetworks: MobileNetwork[] = [
     {
-      id: 'mtn',
+      id: 'MTN',
       name: 'MTN Mobile Money',
       shortCode: 'MTN',
       color: 'bg-yellow-500',
       icon: '/mobile network logo/mtn momo.webp',
     },
     {
-      id: 'telecel',
+      id: 'VODAFONE',
       name: 'Telecel Cash',
       shortCode: 'TELECEL',
       color: 'bg-blue-500',
       icon: '/mobile network logo/telecel cash.webp',
     },
     {
-      id: 'airteltigo',
+      id: 'AIRTELTIGO',
       name: 'AirtelTigo Money',
       shortCode: 'AT',
       color: 'bg-red-500',
@@ -153,29 +153,56 @@ export default function AddSavingsPage() {
     setStep('processing');
 
     try {
-      // Generate payment reference
-      const reference = `SAVE_${Date.now()}_${user?.employee_id || 'USER'}`;
-      setPaymentReference(reference);
+      // Call our payment initialization API
+      const response = await fetch('/api/payments/initialize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          phone: phoneNumber,
+          network: selectedNetwork,
+          metadata: {
+            user_id: user?.id,
+            email: user?.email,
+          },
+        }),
+      });
 
-      // Simulate payment processing (replace with actual Flutterwave integration)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const result = await response.json();
 
-      // For demo purposes, randomly succeed or fail
-      const success = Math.random() > 0.2; // 80% success rate
+      if (result.status === 'success') {
+        setPaymentReference(result.data.reference);
 
-      if (success) {
-        setStep('success');
-
-        // In a real implementation, you would:
-        // 1. Call Flutterwave API to initialize payment
-        // 2. Handle the response
-        // 3. Update the database with transaction details
+        // For mobile money, check the status
+        if (result.data.status === 'pay_offline') {
+          // Show the instruction to the user and start polling
+          setStep('processing');
+          pollPaymentStatus(result.data.reference);
+        } else if (result.data.status === 'success') {
+          // Payment completed immediately
+          setStep('success');
+        } else {
+          // Other status - start polling
+          setStep('processing');
+          pollPaymentStatus(result.data.reference);
+        }
       } else {
+        // Payment initialization failed
         setStep('error');
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.error('Payment initialization failed:', result.message);
+          // eslint-disable-next-line no-console
+          console.error('Full result:', result);
+        }
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Payment error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Payment error:', error);
+      }
       setStep('error');
     } finally {
       setSubmitting(false);
@@ -187,6 +214,56 @@ export default function AddSavingsPage() {
     setStep('form');
     setErrors({});
     setPaymentReference('');
+  };
+
+  // Poll payment status
+  const pollPaymentStatus = (reference: string) => {
+    const maxAttempts = 30; // Poll for up to 5 minutes (30 * 10 seconds)
+    let attempts = 0;
+
+    const poll = async (): Promise<void> => {
+      try {
+        const response = await fetch(
+          `/api/payments/verify?reference=${reference}`
+        );
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          const { data } = result;
+
+          if (data.status === 'success') {
+            setStep('success');
+            return;
+          } else if (data.status === 'failed') {
+            setStep('error');
+            return;
+          }
+        }
+
+        // Continue polling if still pending and within max attempts
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000); // Poll every 10 seconds
+        } else {
+          // Timeout - payment is taking too long
+          setStep('error');
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.error('Status polling error:', error);
+        }
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000);
+        } else {
+          setStep('error');
+        }
+      }
+    };
+
+    // Start polling after a 3 second delay
+    setTimeout(poll, 3000);
   };
 
   // Handle back to dashboard
@@ -534,7 +611,7 @@ export default function AddSavingsPage() {
                               </h4>
                               <p className='text-sm text-blue-700 dark:text-blue-300 mt-1'>
                                 Your payment is processed securely through
-                                Flutterwave.
+                                Paystack.
                               </p>
                             </div>
                           </div>
@@ -589,8 +666,8 @@ export default function AddSavingsPage() {
                                 Authorization Required
                               </p>
                               <p className='text-sm text-yellow-700 dark:text-yellow-300'>
-                                Dial the USSD code or check your mobile money
-                                app to complete the payment
+                                Please check your phone for a payment prompt and
+                                complete the authorization to proceed.
                               </p>
                             </div>
                           </div>
@@ -772,7 +849,7 @@ export default function AddSavingsPage() {
                           <Button
                             variant='primary'
                             size='lg'
-                            className='w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-xl'
+                            className=' bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-xl'
                             onClick={handleRetry}
                           >
                             Try Again
@@ -801,7 +878,7 @@ export default function AddSavingsPage() {
                   </div>
                   <div className='flex items-center space-x-2'>
                     <WifiIcon className='h-4 w-4' />
-                    <span>Powered by Flutterwave</span>
+                    <span>Powered by Paystack</span>
                   </div>
                   <div className='flex items-center space-x-2'>
                     <PhoneIcon className='h-4 w-4' />

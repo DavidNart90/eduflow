@@ -34,17 +34,51 @@ export default function TeacherDashboard() {
     }).format(amount);
   };
 
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      completed:
+        'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/20',
+      pending:
+        'text-yellow-700 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20',
+      failed: 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/20',
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors] || colors.pending}`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
   const getTransactionTypeBadge = (type: string) => {
     const variants = {
       momo: 'primary',
+      deposit: 'primary', // Treat deposit same as momo (mobile money)
       controller: 'secondary',
       interest: 'success',
     } as const;
 
     const icons = {
       momo: <PhoneIcon className='h-3 w-3' />,
+      deposit: <PhoneIcon className='h-3 w-3' />, // Use phone icon for deposit too
       controller: <UserIcon className='h-3 w-3' />,
       interest: <ChartBarIcon className='h-3 w-3' />,
+    };
+
+    const getDisplayText = (transactionType: string) => {
+      switch (transactionType) {
+        case 'momo':
+        case 'deposit':
+          return 'Mobile Money';
+        case 'controller':
+          return 'Controller';
+        case 'interest':
+          return '% Interest';
+        default:
+          return 'Unknown';
+      }
     };
 
     return (
@@ -53,11 +87,7 @@ export default function TeacherDashboard() {
         icon={icons[type as keyof typeof icons]}
         iconPosition='left'
       >
-        {type === 'momo'
-          ? 'MoMo'
-          : type === 'controller'
-            ? 'Controller'
-            : '% Interest'}
+        {getDisplayText(type)}
       </Badge>
     );
   };
@@ -274,7 +304,47 @@ export default function TeacherDashboard() {
 
                   <div className='flex items-center text-green-600 dark:text-green-400 text-sm font-medium'>
                     <ArrowTrendingUpIcon className='h-4 w-4 mr-1' />
-                    <span>+5.2% from last month</span>
+                    <span>
+                      {dashboardData?.trend_percentage !== undefined
+                        ? `${dashboardData.trend_percentage >= 0 ? '+' : ''}${dashboardData.trend_percentage.toFixed(1)}% from last month`
+                        : 'No trend data'}
+                    </span>
+                  </div>
+
+                  {/* Total Contributions Breakdown */}
+                  <div className='space-y-2 pt-3 border-t border-slate-200 dark:border-slate-700'>
+                    <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300'>
+                      Total Contributions
+                    </h4>
+                    <div className='grid grid-cols-2 gap-3 text-sm'>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-slate-600 dark:text-slate-400'>
+                          {dashboardData?.total_contributions?.count || 0}{' '}
+                          contributions
+                        </span>
+                      </div>
+                      <div></div>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-slate-600 dark:text-slate-400'>
+                          Controller
+                        </span>
+                        <span className='font-medium text-slate-900 dark:text-white'>
+                          {formatCurrency(
+                            dashboardData?.total_contributions?.controller || 0
+                          )}
+                        </span>
+                      </div>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-slate-600 dark:text-slate-400'>
+                          Mobile Money
+                        </span>
+                        <span className='font-medium text-slate-900 dark:text-white'>
+                          {formatCurrency(
+                            dashboardData?.total_contributions?.momo || 0
+                          )}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <Button
@@ -313,22 +383,31 @@ export default function TeacherDashboard() {
                 <div className='space-y-4'>
                   <div>
                     <h3 className='text-3xl md:text-4xl font-bold text-slate-900 dark:text-white'>
-                      {formatCurrency(dashboardData?.monthlyContribution || 0)}
+                      {formatCurrency(
+                        dashboardData?.monthly_summary?.total || 0
+                      )}
                     </h3>
                     <p className='text-sm text-slate-600 dark:text-slate-400 mt-1'>
-                      January 2024 total contributions
+                      {dashboardData?.current_month_year?.month || 'Current'}{' '}
+                      {dashboardData?.current_month_year?.year ||
+                        new Date().getFullYear()}{' '}
+                      total contributions
                     </p>
                   </div>
 
                   <div className='flex items-center text-green-600 dark:text-green-400 text-sm font-medium'>
                     <div className='w-2 h-2 bg-green-500 rounded-full mr-2'></div>
                     <span>
-                      {dashboardData?.contributionCount || 0} contributions made
+                      {dashboardData?.monthly_summary?.contributionCount || 0}{' '}
+                      contributions made
                     </span>
                   </div>
 
-                  {/* Enhanced Contribution Breakdown */}
+                  {/* Remove the Monthly Progress section and replace with more contribution stats */}
                   <div className='space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700'>
+                    <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
+                      This Month Breakdown
+                    </h4>
                     <div className='flex justify-between items-center text-sm'>
                       <span className='text-slate-600 dark:text-slate-400'>
                         Controller
@@ -349,35 +428,6 @@ export default function TeacherDashboard() {
                         )}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Enhanced Progress Bar */}
-                  <div className='space-y-2'>
-                    <div className='flex justify-between text-xs'>
-                      <span className='text-slate-600 dark:text-slate-400'>
-                        Monthly Progress
-                      </span>
-                      <span className='text-slate-900 dark:text-white font-medium'>
-                        {Math.round(
-                          ((dashboardData?.monthlyContribution || 0) /
-                            (dashboardData?.monthlyTarget || 1)) *
-                            100
-                        )}
-                        %
-                      </span>
-                    </div>
-                    <div className='w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2'>
-                      <div
-                        className='bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500'
-                        style={{
-                          width: `${Math.min(((dashboardData?.monthlyContribution || 0) / (dashboardData?.monthlyTarget || 1)) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <p className='text-xs text-slate-500 dark:text-slate-400'>
-                      Target:{' '}
-                      {formatCurrency(dashboardData?.monthlyTarget || 0)}
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -425,13 +475,13 @@ export default function TeacherDashboard() {
                         <div>Date</div>
                         <div>Amount</div>
                         <div>Source</div>
-                        <div>Balance</div>
+                        <div>Status</div>
                       </div>
 
                       {/* Enhanced Table Rows */}
                       <div className='space-y-2'>
                         {dashboardData.recent_transactions
-                          .slice(0, 4)
+                          .slice(0, 5)
                           .map(transaction => (
                             <div
                               key={transaction.id}
@@ -453,9 +503,7 @@ export default function TeacherDashboard() {
                                   transaction.transaction_type
                                 )}
                               </div>
-                              <div className='text-sm text-slate-900 dark:text-white font-medium'>
-                                {formatCurrency(transaction.balance)}
-                              </div>
+                              <div>{getStatusBadge(transaction.status)}</div>
                             </div>
                           ))}
                       </div>
