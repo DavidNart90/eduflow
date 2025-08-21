@@ -449,7 +449,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Enhanced Action Buttons */}
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8'>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8'>
                 <Button
                   variant='primary'
                   size='sm'
@@ -490,6 +490,95 @@ export default function AdminDashboard() {
                   </span>
                   <span className='sm:hidden'>Interest Payment</span>
                 </Button>
+
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='w-full h-12 md:h-16 text-sm md:text-lg shadow-xl border-purple-200 text-purple-700 hover:bg-purple-600 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-900/20'
+                  icon={<ChartBarIcon className='h-5 w-5 md:h-6 md:w-6' />}
+                  onClick={() => router.push('/admin/savings-history')}
+                >
+                  <span className='hidden sm:inline'>
+                    Savings & Transactions
+                  </span>
+                  <span className='sm:hidden'>Transactions</span>
+                </Button>
+              </div>
+
+              {/* Total System Savings - Prominent Display */}
+              <div className='mb-8'>
+                <Card
+                  variant='glass'
+                  className='bg-gradient-to-br from-emerald-50/80 to-green-50/80 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200/50 dark:border-emerald-700/50'
+                >
+                  <CardContent className='p-8'>
+                    <div className='text-center'>
+                      <div className='flex items-center justify-center mb-4'>
+                        <div className='p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg'>
+                          <svg
+                            className='h-10 w-10'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <h2 className='text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2'>
+                        Total System Savings
+                      </h2>
+                      <div className='text-5xl md:text-6xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 dark:from-emerald-400 dark:via-green-400 dark:to-emerald-500 bg-clip-text text-transparent mb-4'>
+                        {formatCurrency(
+                          (dashboardData.systemStats?.total_savings || 0) -
+                            (dashboardData.interestPaid || 0)
+                        )}
+                      </div>
+                      <p className='text-slate-600 dark:text-slate-400 text-sm md:text-base mb-6'>
+                        Net savings amount in the system (Total contributions -
+                        Interest paid)
+                      </p>
+
+                      {/* Breakdown */}
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
+                        <div className='bg-white/50 dark:bg-slate-800/50 rounded-lg p-4 border border-white/30 dark:border-slate-600/30'>
+                          <div className='font-semibold text-slate-900 dark:text-white'>
+                            {formatCurrency(
+                              dashboardData.systemStats?.total_savings || 0
+                            )}
+                          </div>
+                          <div className='text-slate-600 dark:text-slate-400 text-xs'>
+                            Total Contributions
+                          </div>
+                        </div>
+                        <div className='bg-white/50 dark:bg-slate-800/50 rounded-lg p-4 border border-white/30 dark:border-slate-600/30'>
+                          <div className='font-semibold text-slate-900 dark:text-white'>
+                            -{formatCurrency(dashboardData.interestPaid || 0)}
+                          </div>
+                          <div className='text-slate-600 dark:text-slate-400 text-xs'>
+                            Interest Paid
+                          </div>
+                        </div>
+                        <div className='bg-emerald-100/80 dark:bg-emerald-900/30 rounded-lg p-4 border border-emerald-200/50 dark:border-emerald-700/50'>
+                          <div className='font-bold text-emerald-800 dark:text-emerald-300'>
+                            {formatCurrency(
+                              (dashboardData.systemStats?.total_savings || 0) -
+                                (dashboardData.interestPaid || 0)
+                            )}
+                          </div>
+                          <div className='text-emerald-700 dark:text-emerald-400 text-xs font-medium'>
+                            Net Savings
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Enhanced Quick Stats */}
@@ -499,23 +588,24 @@ export default function AdminDashboard() {
                   className='border-white/20 bg-white/80 dark:bg-slate-800/80'
                 >
                   <CardHeader
-                    title='Pending Actions'
-                    subtitle='Items requiring attention'
+                    title='System Activity'
+                    subtitle='Monthly reports and notifications'
                   />
                   <CardContent>
                     <div className='space-y-4'>
-                      <div className='flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-xl border border-yellow-200/50 dark:border-yellow-700/50'>
+                      <div className='flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-xl border border-purple-200/50 dark:border-purple-700/50'>
                         <div className='flex items-center space-x-3'>
-                          <div className='p-2 rounded-lg bg-yellow-100 dark:bg-yellow-800'>
-                            <DocumentArrowUpIcon className='h-5 w-5 text-yellow-600 dark:text-yellow-400' />
+                          <div className='p-2 rounded-lg bg-purple-100 dark:bg-purple-800'>
+                            <DocumentArrowUpIcon className='h-5 w-5 text-purple-600 dark:text-purple-400' />
                           </div>
                           <span className='text-sm font-medium text-slate-900 dark:text-white'>
                             Controller Reports
                           </span>
                         </div>
-                        <Badge variant='warning' className='shadow-sm'>
-                          {dashboardData.systemStats?.pending_reports || 0}{' '}
-                          pending
+                        <Badge variant='primary' className='shadow-sm'>
+                          {dashboardData.systemStats
+                            ?.controller_reports_uploaded || 0}{' '}
+                          this month
                         </Badge>
                       </div>
                       <div className='flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/50 dark:border-blue-700/50'>
@@ -527,8 +617,9 @@ export default function AdminDashboard() {
                             Email Notifications
                           </span>
                         </div>
-                        <Badge variant='primary' className='shadow-sm'>
-                          24 sent today
+                        <Badge variant='success' className='shadow-sm'>
+                          {dashboardData.systemStats?.emails_sent || 0} sent
+                          this month
                         </Badge>
                       </div>
                     </div>

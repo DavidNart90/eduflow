@@ -57,6 +57,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: DocumentArrowUpIcon,
     },
     {
+      name: 'Savings History',
+      href: '/admin/savings-history',
+      icon: ClockIcon,
+    },
+    {
       name: 'Generate Quarterly Reports',
       href: '/admin/generate-quarterly-reports',
       icon: ChartBarIcon,
