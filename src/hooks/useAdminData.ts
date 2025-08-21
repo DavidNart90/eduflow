@@ -2,14 +2,62 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { supabase } from '@/lib/supabase';
+import { useApiCall } from './useOptimizedEffects';
 
 export interface AdminDashboardData {
-  totalTeachers: number;
-  totalMoMo: number;
-  totalController: number;
-  interestPaid: number;
-  pendingReports: number;
-  recentActivities: Array<{
+  user: {
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+  };
+  systemStats: {
+    total_teachers: number;
+    active_teachers: number;
+    total_savings: number;
+    monthly_contributions: number;
+    pending_reports: number;
+    system_health: 'good' | 'warning' | 'error';
+  };
+  recent_activities: Array<{
+    id: string;
+    user_id: string;
+    amount: number;
+    transaction_type: 'momo' | 'controller' | 'interest' | 'deposit';
+    payment_method?: 'mobile_money' | 'bank' | 'cash';
+    transaction_date: string;
+    status: 'pending' | 'completed' | 'failed';
+    description?: string;
+    users?: {
+      full_name: string;
+      employee_id: string;
+    };
+  }>;
+  // Calculated fields for display
+  totalMoMo?: number;
+  totalController?: number;
+  interestPaid?: number;
+  pendingReports?: number;
+  trends?: {
+    teachers: number;
+    totalContributions: number;
+    momoContributions: number;
+    controllerContributions: number;
+  };
+  monthlyBreakdown?: {
+    current: {
+      total: number;
+      momo: number;
+      controller: number;
+    };
+    previous: {
+      total: number;
+      momo: number;
+      controller: number;
+    };
+  };
+  recentActivities?: Array<{
     id: string;
     type: string;
     description: string;
@@ -25,10 +73,11 @@ interface AdminDataState {
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  dataSource: 'api' | 'mock' | 'empty';
 }
 
 interface AdminDataHook extends AdminDataState {
-  refetch: () => Promise<void>;
+  refetch: () => void;
   clearError: () => void;
 }
 
@@ -36,21 +85,178 @@ interface AdminDataHook extends AdminDataState {
 const CACHE_DURATION = 2 * 60 * 1000;
 
 export function useAdminData(): AdminDataHook {
-  const { user } = useAuth();
+  const { user, loading: authLoading, validateSession } = useAuth();
   const [state, setState] = useState<AdminDataState>({
     dashboardData: null,
     isLoading: true,
     error: null,
     lastFetched: null,
+    dataSource: 'api',
   });
 
+  // Add a delay state to prevent premature API calls
+  const [initializationDelay, setInitializationDelay] = useState(true);
+  // Track successful API calls to prevent fallback override
+  const [hasSuccessfulResponse, setHasSuccessfulResponse] = useState(false);
+
+  // Clear the initialization delay after auth is loaded and user is available
+  useEffect(() => {
+    if (!authLoading && user) {
+      const timer = setTimeout(() => {
+        setInitializationDelay(false);
+      }, 2000); // 500ms delay to ensure auth is fully settled
+
+      return () => clearTimeout(timer);
+    }
+
+    // Always return a cleanup function (no-op when no timer is set)
+    return () => {
+      // No cleanup needed when timer is not set
+    };
+  }, [authLoading, user]);
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // Admin dashboard API call function
+  const adminApiCall = useCallback(async () => {
+    // Validate session before making API call
+    const isSessionValid = await validateSession();
+    if (!isSessionValid) {
+      throw new Error('Invalid session - please log in again');
+    }
+
+    // Get the session token
+    const {
+      data: { session: currentSession },
+    } = await supabase.auth.getSession();
+
+    if (!currentSession?.access_token) {
+      throw new Error('No authentication token available');
+    }
+
+    const response = await fetch('/api/admin/dashboard', {
+      headers: {
+        Authorization: `Bearer ${currentSession.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch admin dashboard data');
+    }
+
+    return data;
+  }, [validateSession]);
+
+  // Use the enhanced API call hook
+  const { refetch: refetchDashboard } = useApiCall(
+    adminApiCall,
+    [user?.id, authLoading, initializationDelay], // Include initialization delay
+    {
+      enabled: Boolean(
+        !authLoading &&
+          !initializationDelay &&
+          user?.id &&
+          user?.role === 'admin'
+      ), // Wait for auth to load AND initialization delay
+      retryOnTokenRefresh: true,
+      maxRetries: 2, // Reduce retries to prevent multiple error messages
+      onSuccess: data => {
+        const typedData = data as AdminDashboardData;
+
+        // Mark that we have a successful response
+        setHasSuccessfulResponse(true);
+
+        // Transform the data for UI compatibility
+        const transformedData = {
+          ...typedData,
+          // Calculate totals by transaction type for compatibility
+          totalMoMo: calculateMoMoTotal(typedData.recent_activities || []),
+          totalController: calculateControllerTotal(
+            typedData.recent_activities || []
+          ),
+          interestPaid: calculateInterestTotal(
+            typedData.recent_activities || []
+          ),
+          pendingReports: typedData.systemStats.pending_reports,
+          recentActivities: transformActivities(
+            typedData.recent_activities || []
+          ),
+        };
+
+        setState(prev => ({
+          ...prev,
+          dashboardData: transformedData,
+          isLoading: false,
+          error: null,
+          lastFetched: Date.now(),
+          dataSource: 'api',
+        }));
+      },
+      onError: error => {
+        // Only fallback to mock data if we haven't received a successful response
+        if (hasSuccessfulResponse) {
+          // Already have real data, don't override with mock data
+          return;
+        }
+
+        // Be more conservative about showing mock data
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.warn(
+            'Admin dashboard API failed, using fallback data:',
+            error.message
+          );
+        }
+
+        // For session errors, keep loading state longer to give auth time to settle
+        if (error.message.includes('Invalid session')) {
+          // Keep loading for session errors - they often resolve quickly
+          setTimeout(() => {
+            if (!hasSuccessfulResponse) {
+              setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: null,
+                dataSource: 'api',
+                lastFetched: Date.now(),
+              }));
+            }
+          }, 2000); // Wait 2 seconds before showing mock data
+        } else {
+          // For other errors, show mock data immediately
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: null,
+            dataSource: 'mock',
+            lastFetched: Date.now(),
+          }));
+        }
+      },
+    }
+  );
+
   const fetchAdminData = useCallback(
-    async (forceRefresh = false) => {
-      if (!user || user.role !== 'admin') {
+    (forceRefresh = false) => {
+      // Wait for auth to load completely AND initialization delay
+      if (authLoading || initializationDelay) {
+        setState(prev => ({ ...prev, isLoading: true }));
+        return;
+      }
+
+      // Don't immediately fail if user is not admin - let the loading state persist
+      // The admin route component will handle redirects
+      if (!user) {
+        // User not loaded yet, keep loading
+        setState(prev => ({ ...prev, isLoading: true }));
+        return;
+      }
+
+      if (user.role !== 'admin') {
         setState(prev => ({
           ...prev,
           isLoading: false,
@@ -69,112 +275,176 @@ export function useAdminData(): AdminDataHook {
         return;
       }
 
+      // Reset success flag when starting a new fetch
+      setHasSuccessfulResponse(false);
+
+      // Ensure loading state is set before API call
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      try {
-        // Simulate API delay for demo
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // In a real app, these would be actual API calls to fetch admin data
-        const mockData: AdminDashboardData = {
-          totalTeachers: 1247,
-          totalMoMo: 456890,
-          totalController: 789234,
-          interestPaid: 23456,
-          pendingReports: 3,
-          recentActivities: [
-            {
-              id: '1',
-              type: 'Controller report uploaded',
-              description: 'Controller report uploaded for December 2024',
-              amount: '145 records processed • 2 hours ago',
-              time: '2 hours ago',
-              status: 'Processed',
-              icon: 'DocumentArrowUpIcon',
-            },
-            {
-              id: '2',
-              type: 'New teacher account created',
-              description: 'New teacher account created: John Asante',
-              amount: 'Teacher ID: TCH001247 • 5 hours ago',
-              time: '5 hours ago',
-              status: 'New',
-              icon: 'UsersIcon',
-            },
-            {
-              id: '3',
-              type: 'Monthly report generated',
-              description: 'Monthly report generated for November 2024',
-              amount: 'Sent to 1,240 teachers • 1 day ago',
-              time: '1 day ago',
-              status: 'Completed',
-              icon: 'DocumentTextIcon',
-            },
-            {
-              id: '4',
-              type: 'Quarterly interest payment processed',
-              description: 'Quarterly interest payment processed',
-              amount: '₵23,456 distributed to 1,240 accounts • 2 days ago',
-              time: '2 days ago',
-              status: 'Completed',
-              icon: 'CurrencyDollarIcon',
-            },
-            {
-              id: '5',
-              type: 'System maintenance completed',
-              description: 'Database backup and optimization completed',
-              amount: 'Backup size: 2.3GB • 3 days ago',
-              time: '3 days ago',
-              status: 'Completed',
-              icon: 'CogIcon',
-            },
-          ],
-        };
-
-        setState({
-          dashboardData: mockData,
-          isLoading: false,
-          error: null,
-          lastFetched: now,
-        });
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to fetch admin data',
-        }));
-      }
+      // Trigger the API call
+      refetchDashboard();
     },
-    [user, state.lastFetched, state.dashboardData]
+    [
+      authLoading,
+      initializationDelay,
+      user,
+      state.lastFetched,
+      state.dashboardData,
+      refetchDashboard,
+    ]
   );
 
-  const refetch = useCallback(async () => {
-    await fetchAdminData(true);
+  const refetch = useCallback(() => {
+    fetchAdminData(true);
   }, [fetchAdminData]);
 
   // Initial fetch and auth state changes
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading && !initializationDelay) {
+      // Reset success flag when user changes
+      setHasSuccessfulResponse(false);
       fetchAdminData();
-    } else {
+    } else if (!user && !authLoading) {
+      // Only clear loading when auth is complete and user is definitely not available
+      setHasSuccessfulResponse(false);
       setState({
         dashboardData: null,
         isLoading: false,
         error: null,
         lastFetched: null,
+        dataSource: 'api',
       });
     }
-  }, [user, fetchAdminData]);
+    // Keep loading state when auth is still loading or during initialization delay
+  }, [user, authLoading, initializationDelay, fetchAdminData]);
 
   return {
     dashboardData: state.dashboardData,
-    isLoading: state.isLoading,
+    isLoading: authLoading || initializationDelay || state.isLoading, // Include both auth loading and initialization delay
     error: state.error,
     lastFetched: state.lastFetched,
+    dataSource: state.dataSource,
     refetch,
     clearError,
   };
+}
+
+// Helper functions for data transformation
+function calculateMoMoTotal(
+  activities: AdminDashboardData['recent_activities']
+): number {
+  return activities
+    .filter(
+      activity =>
+        activity.payment_method === 'mobile_money' &&
+        activity.status === 'completed'
+    )
+    .reduce((total, activity) => total + activity.amount, 0);
+}
+
+function calculateControllerTotal(
+  activities: AdminDashboardData['recent_activities']
+): number {
+  return activities
+    .filter(
+      activity =>
+        activity.transaction_type === 'controller' &&
+        activity.status === 'completed'
+    )
+    .reduce((total, activity) => total + activity.amount, 0);
+}
+
+function calculateInterestTotal(
+  activities: AdminDashboardData['recent_activities']
+): number {
+  return activities
+    .filter(
+      activity =>
+        activity.transaction_type === 'interest' &&
+        activity.status === 'completed'
+    )
+    .reduce((total, activity) => total + activity.amount, 0);
+}
+
+function transformActivities(
+  activities: AdminDashboardData['recent_activities']
+) {
+  return activities.slice(0, 5).map(activity => {
+    const getIcon = (type: string) => {
+      switch (type) {
+        case 'momo':
+          return 'CurrencyDollarIcon';
+        case 'controller':
+          return 'DocumentArrowUpIcon';
+        case 'interest':
+          return 'CurrencyDollarIcon';
+        default:
+          return 'DocumentTextIcon';
+      }
+    };
+
+    const getDescription = (
+      activity: AdminDashboardData['recent_activities'][0]
+    ) => {
+      const userName = activity.users?.full_name || 'Unknown Teacher';
+      const employeeId = activity.users?.employee_id || '';
+
+      switch (activity.transaction_type) {
+        case 'momo':
+          return `Mobile Money payment received from ${userName}`;
+        case 'controller':
+          return `Controller report entry for ${userName} (${employeeId})`;
+        case 'interest':
+          return `Quarterly interest payment to ${userName}`;
+        default:
+          return `Transaction by ${userName}`;
+      }
+    };
+
+    const getStatus = (status: string) => {
+      if (status === 'completed') {
+        return 'Completed';
+      }
+      if (status === 'pending') {
+        return 'Pending';
+      }
+      if (status === 'failed') {
+        return 'Failed';
+      }
+      return 'Unknown';
+    };
+
+    const formatAmount = (amount: number) => {
+      return new Intl.NumberFormat('en-GH', {
+        style: 'currency',
+        currency: 'GHS',
+      }).format(amount);
+    };
+
+    const formatTime = (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffDays > 0) {
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      }
+      if (diffHours > 0) {
+        return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      }
+      return 'Just now';
+    };
+
+    return {
+      id: activity.id,
+      type: activity.transaction_type,
+      description: getDescription(activity),
+      amount: `${formatAmount(activity.amount)} • ${formatTime(activity.transaction_date)}`,
+      time: formatTime(activity.transaction_date),
+      status: getStatus(activity.status),
+      icon: getIcon(activity.transaction_type),
+    };
+  });
 }
