@@ -6,6 +6,7 @@ import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Badge, Select } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
+import { supabase } from '@/lib/supabase';
 import {
   ArrowLeftIcon,
   CloudArrowUpIcon,
@@ -22,10 +23,31 @@ interface UploadState {
   success: boolean;
 }
 
+interface ProcessingResult {
+  totalRecords: number;
+  matchedRecords: number;
+  unmatchedRecords: number;
+  processedTransactions: number;
+  errors: string[];
+  warnings: string[];
+  matchedTeachers: Array<{
+    name: string;
+    amount: number;
+    managementUnit: string;
+  }>;
+  unmatchedTeachers: Array<{
+    name: string;
+    amount: number;
+    managementUnit: string;
+    reason: string;
+  }>;
+}
+
 export default function UploadControllerReportPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [uploadState, setUploadState] = useState<UploadState>({
     file: null,
     uploading: false,
@@ -33,21 +55,30 @@ export default function UploadControllerReportPage() {
     error: null,
     success: false,
   });
+  const [processingResult, setProcessingResult] =
+    useState<ProcessingResult | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
   const months = [
-    { value: 'january', label: 'January 2025' },
-    { value: 'february', label: 'February 2025' },
-    { value: 'march', label: 'March 2025' },
-    { value: 'april', label: 'April 2025' },
-    { value: 'may', label: 'May 2025' },
-    { value: 'june', label: 'June 2025' },
-    { value: 'july', label: 'July 2025' },
-    { value: 'august', label: 'August 2025' },
-    { value: 'september', label: 'September 2025' },
-    { value: 'october', label: 'October 2025' },
-    { value: 'november', label: 'November 2025' },
-    { value: 'december', label: 'December 2025' },
+    { value: '1', label: 'January 2025' },
+    { value: '2', label: 'February 2025' },
+    { value: '3', label: 'March 2025' },
+    { value: '4', label: 'April 2025' },
+    { value: '5', label: 'May 2025' },
+    { value: '6', label: 'June 2025' },
+    { value: '7', label: 'July 2025' },
+    { value: '8', label: 'August 2025' },
+    { value: '9', label: 'September 2025' },
+    { value: '10', label: 'October 2025' },
+    { value: '11', label: 'November 2025' },
+    { value: '12', label: 'December 2025' },
+  ];
+
+  const years = [
+    { value: '2023', label: '2023' },
+    { value: '2024', label: '2024' },
+    { value: '2025', label: '2025' },
+    { value: '2026', label: '2026' },
   ];
 
   // Simulate loading state
@@ -123,10 +154,10 @@ export default function UploadControllerReportPage() {
   };
 
   const handleUpload = async () => {
-    if (!uploadState.file || !selectedMonth) {
+    if (!uploadState.file || !selectedMonth || !selectedYear) {
       setUploadState(prev => ({
         ...prev,
-        error: 'Please select a month and upload a file',
+        error: 'Please select a month, year, and upload a file',
       }));
       return;
     }
@@ -139,17 +170,45 @@ export default function UploadControllerReportPage() {
     }));
 
     try {
-      // Simulate file upload progress
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setUploadState(prev => ({
-          ...prev,
-          progress: i,
-        }));
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', uploadState.file);
+      formData.append('month', selectedMonth);
+      formData.append('year', selectedYear);
+
+      // Get auth token from Supabase session
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
+      if (!currentSession?.access_token) {
+        throw new Error('Authentication required. Please log in again.');
       }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadState(prev => ({
+          ...prev,
+          progress: Math.min(prev.progress + 10, 90),
+        }));
+      }, 200);
+
+      // Call the API
+      const response = await fetch('/api/admin/upload-controller-report', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`,
+        },
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
 
       setUploadState(prev => ({
         ...prev,
@@ -157,11 +216,16 @@ export default function UploadControllerReportPage() {
         success: true,
         progress: 100,
       }));
-    } catch {
+
+      setProcessingResult(data.result);
+    } catch (error) {
       setUploadState(prev => ({
         ...prev,
         uploading: false,
-        error: 'Failed to upload file. Please try again.',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to upload file. Please try again.',
         progress: 0,
       }));
     }
@@ -176,6 +240,8 @@ export default function UploadControllerReportPage() {
       success: false,
     });
     setSelectedMonth('');
+    setSelectedYear('2025');
+    setProcessingResult(null);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -345,21 +411,37 @@ export default function UploadControllerReportPage() {
                   className='border-white/20 bg-white/80 dark:bg-slate-800/80 mb-6'
                 >
                   <CardContent className='p-4 md:p-8'>
-                    {/* Month Selection */}
+                    {/* Month and Year Selection */}
                     <div className='mb-8'>
-                      <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
-                        Report Month
-                      </label>
-                      <Select
-                        value={selectedMonth}
-                        onChange={setSelectedMonth}
-                        options={[
-                          { value: '', label: 'Select month...' },
-                          ...months,
-                        ]}
-                        placeholder='Select month...'
-                        className='max-w-xs'
-                      />
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div>
+                          <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
+                            Report Month
+                          </label>
+                          <Select
+                            value={selectedMonth}
+                            onChange={setSelectedMonth}
+                            options={[
+                              { value: '', label: 'Select month...' },
+                              ...months,
+                            ]}
+                            placeholder='Select month...'
+                            className='w-full'
+                          />
+                        </div>
+                        <div>
+                          <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
+                            Report Year
+                          </label>
+                          <Select
+                            value={selectedYear}
+                            onChange={setSelectedYear}
+                            options={years}
+                            placeholder='Select year...'
+                            className='w-full'
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* File Upload Area */}
@@ -445,10 +527,28 @@ export default function UploadControllerReportPage() {
 
                       {/* File Requirements */}
                       <div className='mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50'>
-                        <p className='text-sm text-slate-600 dark:text-slate-400 text-center'>
-                          Only files with Name and Deduction columns are
-                          supported
-                        </p>
+                        <h4 className='font-medium text-blue-800 dark:text-blue-400 mb-2'>
+                          File Requirements:
+                        </h4>
+                        <ul className='text-sm text-slate-600 dark:text-slate-400 space-y-1'>
+                          <li>
+                            • Must contain columns: &ldquo;Name of
+                            Employee&rdquo; and &ldquo;Monthly&rdquo; (deduction
+                            amount)
+                          </li>
+                          <li>
+                            • Optional: &ldquo;Management Unit&rdquo; column for
+                            better matching
+                          </li>
+                          <li>
+                            • Supports CSV (.csv) and Excel (.xlsx, .xls) files
+                          </li>
+                          <li>• Maximum file size: 10MB</li>
+                          <li>
+                            • Names will be matched with existing teachers in
+                            the database
+                          </li>
+                        </ul>
                       </div>
                     </div>
 
@@ -470,10 +570,133 @@ export default function UploadControllerReportPage() {
                         <div className='flex items-center space-x-3'>
                           <CheckCircleIcon className='h-5 w-5 text-green-500' />
                           <p className='text-sm text-green-700 dark:text-green-400'>
-                            File uploaded successfully! Processing will begin
-                            shortly.
+                            File uploaded and processed successfully!
                           </p>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Processing Results */}
+                    {processingResult && (
+                      <div className='mb-6 space-y-4'>
+                        {/* Summary Statistics */}
+                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                          <div className='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>
+                            <div className='text-2xl font-bold text-blue-600 dark:text-blue-400'>
+                              {processingResult.totalRecords}
+                            </div>
+                            <div className='text-sm text-blue-600 dark:text-blue-400'>
+                              Total Records
+                            </div>
+                          </div>
+                          <div className='p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800'>
+                            <div className='text-2xl font-bold text-green-600 dark:text-green-400'>
+                              {processingResult.matchedRecords}
+                            </div>
+                            <div className='text-sm text-green-600 dark:text-green-400'>
+                              Matched
+                            </div>
+                          </div>
+                          <div className='p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800'>
+                            <div className='text-2xl font-bold text-yellow-600 dark:text-yellow-400'>
+                              {processingResult.unmatchedRecords}
+                            </div>
+                            <div className='text-sm text-yellow-600 dark:text-yellow-400'>
+                              Unmatched
+                            </div>
+                          </div>
+                          <div className='p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800'>
+                            <div className='text-2xl font-bold text-purple-600 dark:text-purple-400'>
+                              {processingResult.processedTransactions}
+                            </div>
+                            <div className='text-sm text-purple-600 dark:text-purple-400'>
+                              Transactions Created
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Errors */}
+                        {processingResult.errors.length > 0 && (
+                          <div className='p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'>
+                            <h4 className='font-medium text-red-800 dark:text-red-400 mb-2'>
+                              Errors ({processingResult.errors.length})
+                            </h4>
+                            <div className='space-y-1 max-h-32 overflow-y-auto'>
+                              {processingResult.errors.map((error, index) => (
+                                <p
+                                  key={index}
+                                  className='text-sm text-red-700 dark:text-red-400'
+                                >
+                                  • {error}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Warnings */}
+                        {processingResult.warnings.length > 0 && (
+                          <div className='p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg'>
+                            <h4 className='font-medium text-yellow-800 dark:text-yellow-400 mb-2'>
+                              Warnings ({processingResult.warnings.length})
+                            </h4>
+                            <div className='space-y-1 max-h-32 overflow-y-auto'>
+                              {processingResult.warnings
+                                .slice(0, 5)
+                                .map((warning, index) => (
+                                  <p
+                                    key={index}
+                                    className='text-sm text-yellow-700 dark:text-yellow-400'
+                                  >
+                                    • {warning}
+                                  </p>
+                                ))}
+                              {processingResult.warnings.length > 5 && (
+                                <p className='text-sm text-yellow-600 dark:text-yellow-500'>
+                                  ... and {processingResult.warnings.length - 5}{' '}
+                                  more
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Unmatched Teachers */}
+                        {processingResult.unmatchedTeachers.length > 0 && (
+                          <div className='p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg'>
+                            <h4 className='font-medium text-orange-800 dark:text-orange-400 mb-2'>
+                              Unmatched Teachers (
+                              {processingResult.unmatchedTeachers.length})
+                            </h4>
+                            <div className='space-y-2 max-h-48 overflow-y-auto'>
+                              {processingResult.unmatchedTeachers
+                                .slice(0, 10)
+                                .map((teacher, index) => (
+                                  <div key={index} className='text-sm'>
+                                    <div className='font-medium text-orange-800 dark:text-orange-400'>
+                                      {teacher.name}
+                                    </div>
+                                    <div className='text-orange-600 dark:text-orange-500'>
+                                      Amount: GHS {teacher.amount.toFixed(2)} •{' '}
+                                      {teacher.managementUnit}
+                                    </div>
+                                    <div className='text-orange-500 dark:text-orange-600'>
+                                      Reason: {teacher.reason}
+                                    </div>
+                                  </div>
+                                ))}
+                              {processingResult.unmatchedTeachers.length >
+                                10 && (
+                                <p className='text-sm text-orange-600 dark:text-orange-500'>
+                                  ... and{' '}
+                                  {processingResult.unmatchedTeachers.length -
+                                    10}{' '}
+                                  more unmatched teachers
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -486,6 +709,7 @@ export default function UploadControllerReportPage() {
                         disabled={
                           !uploadState.file ||
                           !selectedMonth ||
+                          !selectedYear ||
                           uploadState.uploading
                         }
                         className='px-8 py-3 text-primary-500 dark:text-white bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed'

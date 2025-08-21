@@ -256,6 +256,40 @@ export async function GET(request: NextRequest) {
     // Get pending reports count (mock for now as we don't have controller_reports table fully implemented)
     const pendingReportsCount = 3; // This would be replaced with actual query
 
+    // Get additional system activity metrics
+    const [{ data: controllerReports }, { data: emailNotifications }] =
+      await Promise.all([
+        // Get controller reports uploaded this month
+        supabaseAdmin
+          .from('controller_reports')
+          .select('id')
+          .gte(
+            'created_at',
+            `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
+          )
+          .lt(
+            'created_at',
+            `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`
+          ),
+
+        // Get emails sent this month
+        supabaseAdmin
+          .from('email_notifications')
+          .select('id')
+          .eq('status', 'sent')
+          .gte(
+            'created_at',
+            `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
+          )
+          .lt(
+            'created_at',
+            `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`
+          ),
+      ]);
+
+    const controllerReportsCount = controllerReports?.length || 0;
+    const emailsSentCount = emailNotifications?.length || 0;
+
     // System health check
     const systemHealth = (() => {
       if (
@@ -288,6 +322,8 @@ export async function GET(request: NextRequest) {
         monthly_contributions: currentMonthTotal,
         pending_reports: pendingReportsCount,
         system_health: systemHealth,
+        controller_reports_uploaded: controllerReportsCount,
+        emails_sent: emailsSentCount,
       },
       recent_activities: recentActivities || [],
       // Additional calculated fields for UI compatibility

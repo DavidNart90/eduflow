@@ -19,6 +19,8 @@ export interface AdminDashboardData {
     monthly_contributions: number;
     pending_reports: number;
     system_health: 'good' | 'warning' | 'error';
+    controller_reports_uploaded: number;
+    emails_sent: number;
   };
   recent_activities: Array<{
     id: string;
@@ -173,14 +175,10 @@ export function useAdminData(): AdminDataHook {
         // Transform the data for UI compatibility
         const transformedData = {
           ...typedData,
-          // Calculate totals by transaction type for compatibility
-          totalMoMo: calculateMoMoTotal(typedData.recent_activities || []),
-          totalController: calculateControllerTotal(
-            typedData.recent_activities || []
-          ),
-          interestPaid: calculateInterestTotal(
-            typedData.recent_activities || []
-          ),
+          // Use the API-provided totals (calculated from ALL transactions) instead of recalculating from recent activities
+          totalMoMo: typedData.totalMoMo || 0,
+          totalController: typedData.totalController || 0,
+          interestPaid: typedData.interestPaid || 0,
           pendingReports: typedData.systemStats.pending_reports,
           recentActivities: transformActivities(
             typedData.recent_activities || []
@@ -330,42 +328,6 @@ export function useAdminData(): AdminDataHook {
 }
 
 // Helper functions for data transformation
-function calculateMoMoTotal(
-  activities: AdminDashboardData['recent_activities']
-): number {
-  return activities
-    .filter(
-      activity =>
-        activity.payment_method === 'mobile_money' &&
-        activity.status === 'completed'
-    )
-    .reduce((total, activity) => total + activity.amount, 0);
-}
-
-function calculateControllerTotal(
-  activities: AdminDashboardData['recent_activities']
-): number {
-  return activities
-    .filter(
-      activity =>
-        activity.transaction_type === 'controller' &&
-        activity.status === 'completed'
-    )
-    .reduce((total, activity) => total + activity.amount, 0);
-}
-
-function calculateInterestTotal(
-  activities: AdminDashboardData['recent_activities']
-): number {
-  return activities
-    .filter(
-      activity =>
-        activity.transaction_type === 'interest' &&
-        activity.status === 'completed'
-    )
-    .reduce((total, activity) => total + activity.amount, 0);
-}
-
 function transformActivities(
   activities: AdminDashboardData['recent_activities']
 ) {
