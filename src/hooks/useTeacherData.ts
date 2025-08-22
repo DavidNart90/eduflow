@@ -43,7 +43,12 @@ interface TeacherDashboardData {
     total: number;
     momo: number;
     controller: number;
+    interest: number;
     count: number;
+  };
+  interest_setting: {
+    interest_rate: number;
+    payment_frequency: string;
   };
 }
 
@@ -179,7 +184,12 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
             total: 12450.75,
             momo: 5000.0,
             controller: 7450.75,
+            interest: 180.25,
             count: 15,
+          },
+          interest_setting: {
+            interest_rate: 0.0425, // 4.25%
+            payment_frequency: 'quarterly',
           },
         };
 
