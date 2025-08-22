@@ -34,6 +34,10 @@ export default function TeacherDashboard() {
     }).format(amount);
   };
 
+  const formatPercentage = (rate: number) => {
+    return (rate * 100).toFixed(2);
+  };
+
   const getStatusBadge = (status: string) => {
     const colors = {
       completed:
@@ -272,7 +276,7 @@ export default function TeacherDashboard() {
           )}
 
           {/* Enhanced Summary Cards - Top Row */}
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
             {/* Total Savings Balance Card */}
             <Card
               variant='glass'
@@ -341,6 +345,16 @@ export default function TeacherDashboard() {
                         <span className='font-medium text-slate-900 dark:text-white'>
                           {formatCurrency(
                             dashboardData?.total_contributions?.momo || 0
+                          )}
+                        </span>
+                      </div>
+                      <div className='flex justify-between items-center col-span-2'>
+                        <span className='text-slate-600 dark:text-slate-400'>
+                          Interest Earned
+                        </span>
+                        <span className='font-medium text-orange-600 dark:text-orange-400'>
+                          {formatCurrency(
+                            dashboardData?.total_contributions?.interest || 0
                           )}
                         </span>
                       </div>
@@ -426,6 +440,90 @@ export default function TeacherDashboard() {
                         {formatCurrency(
                           dashboardData?.monthly_summary?.momo || 0
                         )}
+                      </span>
+                    </div>
+                    <div className='flex justify-between items-center text-sm'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Interest
+                      </span>
+                      <span className='font-medium text-orange-600 dark:text-orange-400'>
+                        {formatCurrency(
+                          dashboardData?.monthly_summary?.interest || 0
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Interest Earned Card */}
+            <Card
+              variant='glass'
+              className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl'
+            >
+              <CardContent className='p-2 md:p-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-lg'>
+                      <ArrowTrendingUpIcon className='h-6 w-6' />
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-slate-600 dark:text-slate-400'>
+                        Interest Earned
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='space-y-4'>
+                  <div>
+                    <h3 className='text-3xl md:text-4xl font-bold text-slate-900 dark:text-white'>
+                      {formatCurrency(
+                        dashboardData?.total_contributions?.interest || 0
+                      )}
+                    </h3>
+                    <p className='text-sm text-slate-600 dark:text-slate-400 mt-1'>
+                      Total interest from quarterly payments
+                    </p>
+                  </div>
+
+                  <div className='flex items-center text-orange-600 dark:text-orange-400 text-sm font-medium'>
+                    <div className='w-2 h-2 bg-orange-500 rounded-full mr-2'></div>
+                    <span>
+                      {(dashboardData?.monthly_summary?.interest || 0) > 0
+                        ? `+${formatCurrency(
+                            dashboardData?.monthly_summary?.interest || 0
+                          )} this quarter`
+                        : 'No interest this quarter'}
+                    </span>
+                  </div>
+
+                  {/* Interest Details */}
+                  <div className='space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700'>
+                    <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
+                      Interest Information
+                    </h4>
+                    <div className='flex justify-between items-center text-sm'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Current Rate
+                      </span>
+                      <span className='font-medium text-slate-900 dark:text-white'>
+                        {formatPercentage(
+                          dashboardData?.interest_setting?.interest_rate ||
+                            0.0425
+                        )}
+                        %{' '}
+                        {dashboardData?.interest_setting?.payment_frequency ||
+                          'quarterly'}
+                      </span>
+                    </div>
+                    <div className='flex justify-between items-center text-sm'>
+                      <span className='text-slate-600 dark:text-slate-400'>
+                        Next Payment
+                      </span>
+                      <span className='font-medium text-slate-900 dark:text-white'>
+                        End of Q{Math.ceil((new Date().getMonth() + 1) / 3)}
                       </span>
                     </div>
                   </div>

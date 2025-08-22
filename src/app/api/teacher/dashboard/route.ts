@@ -222,29 +222,42 @@ export async function GET(request: NextRequest) {
       .select('amount, transaction_type')
       .eq('user_id', user.id)
       .eq('status', 'completed')
-      .in('transaction_type', ['momo', 'controller', 'deposit']);
+      .in('transaction_type', ['momo', 'controller', 'deposit', 'interest']);
 
     const totalContributionBreakdown = {
       total: 0,
       momo: 0,
       controller: 0,
+      interest: 0,
       count: 0,
     };
 
     if (totalContributionsData) {
       totalContributionsData.forEach(transaction => {
-        totalContributionBreakdown.total += transaction.amount;
-        totalContributionBreakdown.count++;
         if (
           transaction.transaction_type === 'momo' ||
           transaction.transaction_type === 'deposit'
         ) {
           totalContributionBreakdown.momo += transaction.amount;
+          totalContributionBreakdown.total += transaction.amount;
+          totalContributionBreakdown.count++;
         } else if (transaction.transaction_type === 'controller') {
           totalContributionBreakdown.controller += transaction.amount;
+          totalContributionBreakdown.total += transaction.amount;
+          totalContributionBreakdown.count++;
+        } else if (transaction.transaction_type === 'interest') {
+          totalContributionBreakdown.interest += transaction.amount;
+          // Interest adds to total but doesn't count as a contribution
         }
       });
     }
+
+    // Get the current active interest setting
+    const { data: interestSetting } = await supabaseAdmin
+      .from('interest_settings')
+      .select('interest_rate, payment_frequency')
+      .eq('is_active', true)
+      .single();
 
     return NextResponse.json({
       user: {
@@ -263,7 +276,16 @@ export async function GET(request: NextRequest) {
         month: currentDate.toLocaleDateString('en-US', { month: 'long' }),
         year: currentYear,
       },
-      total_contributions: totalContributionBreakdown,
+      total_contributions: {
+        ...totalContributionBreakdown,
+        total:
+          totalContributionBreakdown.total +
+          totalContributionBreakdown.interest,
+      },
+      interest_setting: {
+        interest_rate: interestSetting?.interest_rate || 0.0425, // Default 4.25%
+        payment_frequency: interestSetting?.payment_frequency || 'quarterly',
+      },
     });
   } catch {
     return NextResponse.json(
