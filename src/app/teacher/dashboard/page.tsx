@@ -495,7 +495,7 @@ export default function TeacherDashboard() {
                         ? `+${formatCurrency(
                             dashboardData?.monthly_summary?.interest || 0
                           )} this quarter`
-                        : 'No interest this quarter'}
+                        : 'No interest this Quarter'}
                     </span>
                   </div>
 
