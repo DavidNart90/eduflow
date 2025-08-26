@@ -198,3 +198,25 @@ SUPABASE_SETUP.md
 
 clear_all_data.sql
 .*clear_all_data.sql
+
+
+# Ignore SQL migration files
+supabase/*.sql
+supabase/migrations/*.sql
+supabase/*.toml
+supabase/migrations/*.toml
+# Ignore Supabase config files
+supabase/config.toml
+
+# Ingnore all test files
+*.test.js
+debug-logging.js
+test-report-logging.js
+test-report-system.js
+test-sql-functions.js
+
+
+# Ignore env example files
+.env.local.example
+.env.example.local
+.env.example

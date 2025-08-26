@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/lib/auth-context-optimized';
 import {
   Card,
   CardContent,
@@ -27,79 +28,84 @@ import {
   CheckCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { useTemplates } from '@/lib/reports/hooks';
 
-interface TemplateVariation {
+interface ReportTemplate {
   id: string;
   name: string;
   type: 'teacher' | 'association';
-  isDefault: boolean;
-  lastModified: string;
-  previewUrl: string;
-  config: {
-    headerColor: string;
-    font: string;
-    logoPosition: string;
-    includeSignature: boolean;
-    includeWatermark: boolean;
-  };
+  template_data: Record<string, unknown>;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function TemplatePreviewPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'teacher' | 'association'>(
     'teacher'
   );
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [showErrors, setShowErrors] = useState<string[]>([]);
+  const [showSuccess, setShowSuccess] = useState<string>('');
+  const [confirmDelete, setConfirmDelete] = useState<{
+    show: boolean;
+    templateId: string;
+    templateName: string;
+  }>({ show: false, templateId: '', templateName: '' });
+  const [templateConfig, setTemplateConfig] = useState({
+    headerColor: '#2563eb',
+    font: 'Inter',
+    logoPosition: 'top-left',
+    includeSignature: true,
+    includeWatermark: false,
+  });
 
-  // Sample template data
-  const [templates] = useState<TemplateVariation[]>([
-    {
-      id: '1',
-      name: 'Classic Blue Template',
-      type: 'teacher',
-      isDefault: true,
-      lastModified: '2024-12-15',
-      previewUrl: '/previews/teacher-classic-blue.png',
-      config: {
-        headerColor: '#2563eb',
-        font: 'Inter',
-        logoPosition: 'top-left',
-        includeSignature: true,
-        includeWatermark: false,
-      },
-    },
-    {
-      id: '2',
-      name: 'Modern Green Template',
-      type: 'teacher',
-      isDefault: false,
-      lastModified: '2024-12-14',
-      previewUrl: '/previews/teacher-modern-green.png',
-      config: {
-        headerColor: '#059669',
-        font: 'Roboto',
-        logoPosition: 'top-center',
-        includeSignature: true,
-        includeWatermark: true,
-      },
-    },
-    {
-      id: '3',
-      name: 'Executive Template',
-      type: 'association',
-      isDefault: true,
-      lastModified: '2024-12-13',
-      previewUrl: '/previews/association-executive.png',
-      config: {
-        headerColor: '#7c3aed',
-        font: 'Times New Roman',
-        logoPosition: 'top-center',
-        includeSignature: true,
-        includeWatermark: true,
-      },
-    },
-  ]);
+  // Use real templates from database
+  const {
+    templates,
+    isLoading: templatesLoading,
+    error,
+    fetchTemplates,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+  } = useTemplates();
+
+  // Fetch templates on component mount and when tab changes
+  useEffect(() => {
+    fetchTemplates(activeTab);
+  }, [activeTab, fetchTemplates]);
+
+  // Update loading state based on templates loading
+  useEffect(() => {
+    setIsLoading(templatesLoading);
+  }, [templatesLoading]);
+
+  // Helper function to parse template config
+  const getTemplateConfig = (template: ReportTemplate) => {
+    const config = template.template_data?.config as Record<string, unknown>;
+    return {
+      headerColor: (config?.headerColor as string) || '#2563eb',
+      font: (config?.font as string) || 'Inter',
+      logoPosition: (config?.logoPosition as string) || 'top-left',
+      includeSignature: (config?.includeSignature as boolean) !== false,
+      includeWatermark: (config?.includeWatermark as boolean) || false,
+    };
+  };
+
+  // Update template config when template is selected
+  useEffect(() => {
+    if (selectedTemplate) {
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (template) {
+        setTemplateConfig(getTemplateConfig(template));
+      }
+    }
+  }, [selectedTemplate, templates]);
 
   const fontOptions = [
     { value: 'Inter', label: 'Inter' },
@@ -114,14 +120,13 @@ export default function TemplatePreviewPage() {
     { value: 'top-right', label: 'Top Right' },
   ];
 
-  // Simulate loading state
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Simulate loading state - remove this since we now use real loading
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setIsLoading(false);
+  //   }, 2000);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const teacherTemplates = templates.filter(t => t.type === 'teacher');
   const associationTemplates = templates.filter(t => t.type === 'association');
@@ -129,6 +134,190 @@ export default function TemplatePreviewPage() {
     activeTab === 'teacher' ? teacherTemplates : associationTemplates;
 
   const canCreateMore = currentTemplates.length < 5;
+
+  // Handle template deletion
+  const handleDeleteTemplate = (
+    templateId: string,
+    event: React.MouseEvent
+  ) => {
+    event.stopPropagation();
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setConfirmDelete({
+        show: true,
+        templateId,
+        templateName: template.name,
+      });
+    }
+  };
+
+  // Confirm and execute template deletion
+  const confirmDeleteTemplate = async () => {
+    if (!confirmDelete.templateId) return;
+
+    try {
+      const result = await deleteTemplate(confirmDelete.templateId);
+      if (result.success) {
+        setShowSuccess('Template deleted successfully');
+        setShowErrors([]);
+      } else {
+        setShowErrors([result.error || 'Failed to delete template']);
+        setShowSuccess('');
+      }
+    } catch (error) {
+      setShowErrors([
+        `Failed to delete template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ]);
+      setShowSuccess('');
+    } finally {
+      setConfirmDelete({ show: false, templateId: '', templateName: '' });
+    }
+  };
+
+  // Handle template editing
+  const handleEditTemplate = (templateId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    // Set the template as selected for editing
+    setSelectedTemplate(templateId);
+    // Scroll to configuration panel
+    setTimeout(() => {
+      const configPanel = document.querySelector('[data-template-config]');
+      configPanel?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  // Handle save template changes
+  const handleSaveTemplate = async () => {
+    if (!selectedTemplate) return;
+
+    const selectedTemp = templates.find(t => t.id === selectedTemplate);
+    if (!selectedTemp) return;
+
+    const updatedTemplateData = {
+      config: templateConfig,
+      version: '1.1',
+      lastModified: new Date().toISOString(),
+      updatedBy: user?.employee_id || user?.email || 'admin',
+    };
+
+    try {
+      const result = await updateTemplate(selectedTemplate, {
+        template_data: updatedTemplateData,
+      });
+
+      if (result.success) {
+        setShowSuccess('Template saved successfully');
+        setShowErrors([]);
+      } else {
+        setShowErrors([result.error || 'Failed to save template']);
+        setShowSuccess('');
+      }
+    } catch (error) {
+      setShowErrors([
+        `Failed to save template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ]);
+      setShowSuccess('');
+    }
+  };
+
+  // Handle template export
+  const handleExportTemplate = () => {
+    if (!selectedTemplate) return;
+
+    const template = templates.find(t => t.id === selectedTemplate);
+    if (template) {
+      try {
+        // Create downloadable JSON file
+        const dataStr = JSON.stringify(template, null, 2);
+        const dataUri =
+          'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = `${template.name.replace(/\s+/g, '_')}_template.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+
+        setShowSuccess('Template exported successfully');
+        setShowErrors([]);
+      } catch (error) {
+        setShowErrors([
+          `Failed to export template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ]);
+        setShowSuccess('');
+      }
+    }
+  };
+
+  // Handle template import
+  const handleImportTemplate = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async e => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          const text = await file.text();
+          const templateData = JSON.parse(text);
+
+          // Create new template with imported data
+          const result = await createTemplate({
+            name: `${templateData.name} (Imported)`,
+            type: activeTab,
+            template_data: templateData.template_data,
+          });
+
+          if (result.success) {
+            setShowSuccess('Template imported successfully');
+            setShowErrors([]);
+            fetchTemplates(activeTab);
+          }
+        } catch (error) {
+          setShowErrors([
+            `Failed to import template: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the file format.`,
+          ]);
+          setShowSuccess('');
+        }
+      }
+    };
+    input.click();
+  };
+
+  // Handle create new template
+  const handleCreateTemplate = () => {
+    const defaultConfig = {
+      headerColor: '#2563eb',
+      font: 'Inter',
+      logoPosition: 'top-left',
+      includeSignature: true,
+      includeWatermark: false,
+    };
+
+    createTemplate({
+      name: `New ${activeTab} Template`,
+      type: activeTab,
+      template_data: {
+        config: defaultConfig,
+        version: '1.0',
+        elements: [],
+        createdBy: user?.employee_id || user?.email || 'admin',
+      },
+    })
+      .then(result => {
+        if (result.success) {
+          setShowSuccess('Template created successfully');
+          setShowErrors([]);
+          // Refresh templates
+          fetchTemplates(activeTab);
+        }
+      })
+      .catch((error: Error) => {
+        setShowErrors([`Failed to create template: ${error.message}`]);
+        setShowSuccess('');
+      });
+  };
 
   return (
     <AdminRoute>
@@ -256,6 +445,66 @@ export default function TemplatePreviewPage() {
             </>
           ) : (
             <>
+              {/* Success Display */}
+              {showSuccess && (
+                <div className='mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center space-x-3'>
+                      <CheckCircleIcon className='h-5 w-5 text-green-600' />
+                      <p className='text-green-600 dark:text-green-400 text-sm'>
+                        {showSuccess}
+                      </p>
+                    </div>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setShowSuccess('')}
+                      className='text-green-600 hover:text-green-700'
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Error Display */}
+              {showErrors.length > 0 && (
+                <div className='mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'>
+                  <div className='flex items-start justify-between'>
+                    <div className='flex items-start space-x-3'>
+                      <XMarkIcon className='h-5 w-5 text-red-600 mt-0.5' />
+                      <div className='flex-1'>
+                        {showErrors.map((error, index) => (
+                          <p
+                            key={index}
+                            className='text-red-600 dark:text-red-400 text-sm mb-1'
+                          >
+                            {error}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setShowErrors([])}
+                      className='text-red-600 hover:text-red-700'
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* API Error Display */}
+              {error && (
+                <div className='mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'>
+                  <p className='text-red-600 dark:text-red-400 text-sm'>
+                    Error loading templates: {error}
+                  </p>
+                </div>
+              )}
+
               {/* Header */}
               <div className='mb-6 md:mb-8'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
@@ -329,10 +578,11 @@ export default function TemplatePreviewPage() {
                           <div
                             className='absolute top-2 right-2 w-4 h-4 rounded-full'
                             style={{
-                              backgroundColor: template.config.headerColor,
+                              backgroundColor:
+                                getTemplateConfig(template).headerColor,
                             }}
                           />
-                          {template.isDefault && (
+                          {template.is_default && (
                             <Badge
                               variant='success'
                               className='absolute top-2 left-2 text-xs'
@@ -348,18 +598,19 @@ export default function TemplatePreviewPage() {
                             {template.name}
                           </h3>
                           <p className='text-sm text-slate-600 dark:text-slate-400 mb-3'>
-                            Modified: {template.lastModified}
+                            Modified:{' '}
+                            {new Date(template.updated_at).toLocaleDateString()}
                           </p>
 
                           {/* Template Config Summary */}
                           <div className='flex flex-wrap gap-1 mb-4'>
                             <Badge variant='secondary' className='text-xs'>
-                              {template.config.font}
+                              {getTemplateConfig(template).font}
                             </Badge>
                             <Badge variant='secondary' className='text-xs'>
-                              {template.config.logoPosition}
+                              {getTemplateConfig(template).logoPosition}
                             </Badge>
-                            {template.config.includeSignature && (
+                            {getTemplateConfig(template).includeSignature && (
                               <Badge variant='secondary' className='text-xs'>
                                 Signature
                               </Badge>
@@ -381,18 +632,17 @@ export default function TemplatePreviewPage() {
                               size='sm'
                               className='!text-slate-600 hover:!text-slate-900'
                               icon={<PencilIcon className='h-4 w-4' />}
-                              onClick={e => {
-                                e.stopPropagation();
-                                /*TODO: Implement template editing*/
-                              }}
+                              onClick={e => handleEditTemplate(template.id, e)}
                             />
-                            {!template.isDefault && (
+                            {!template.is_default && (
                               <Button
                                 variant='ghost'
                                 size='sm'
                                 className='!text-red-600 hover:!text-red-700'
                                 icon={<TrashIcon className='h-4 w-4' />}
-                                onClick={e => e.stopPropagation()}
+                                onClick={e =>
+                                  handleDeleteTemplate(template.id, e)
+                                }
                               />
                             )}
                           </div>
@@ -406,9 +656,7 @@ export default function TemplatePreviewPage() {
                     <Card
                       variant='glass'
                       className='border-dashed border-2 border-slate-300 dark:border-slate-600 bg-white/40 dark:bg-slate-800/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all cursor-pointer'
-                      onClick={() => {
-                        /*TODO: Implement create new template modal*/
-                      }}
+                      onClick={handleCreateTemplate}
                     >
                       <CardContent className='p-2 md:p-6 flex flex-col items-center justify-center h-full min-h-[300px]'>
                         <div className='w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4'>
@@ -451,6 +699,7 @@ export default function TemplatePreviewPage() {
                   <Card
                     variant='glass'
                     className='border-white/20 bg-white/80 dark:bg-slate-800/80 mb-6'
+                    data-template-config
                   >
                     <CardContent className='p-2 md:p-8'>
                       <div className='md:flex justify-between items-center space-y-4'>
@@ -463,6 +712,7 @@ export default function TemplatePreviewPage() {
                             size='sm'
                             className='!text-primary !border-primary/20 hover:!bg-primary/10'
                             icon={<DocumentArrowDownIcon className='h-4 w-4' />}
+                            onClick={handleExportTemplate}
                           >
                             Export Template
                           </Button>
@@ -471,6 +721,7 @@ export default function TemplatePreviewPage() {
                             size='sm'
                             className='to-blue-600'
                             icon={<CheckCircleIcon className='h-4 w-4' />}
+                            onClick={handleSaveTemplate}
                           >
                             Save Changes
                           </Button>
@@ -503,17 +754,23 @@ export default function TemplatePreviewPage() {
                             <div className='flex space-x-2'>
                               <Input
                                 type='color'
-                                defaultValue={
-                                  templates.find(t => t.id === selectedTemplate)
-                                    ?.config.headerColor
+                                value={templateConfig.headerColor}
+                                onChange={e =>
+                                  setTemplateConfig(prev => ({
+                                    ...prev,
+                                    headerColor: e.target.value,
+                                  }))
                                 }
                                 className='w-16 h-10 p-1 rounded-lg'
                               />
                               <Input
                                 placeholder='#2563eb'
-                                defaultValue={
-                                  templates.find(t => t.id === selectedTemplate)
-                                    ?.config.headerColor
+                                value={templateConfig.headerColor}
+                                onChange={e =>
+                                  setTemplateConfig(prev => ({
+                                    ...prev,
+                                    headerColor: e.target.value,
+                                  }))
                                 }
                                 className='flex-1'
                               />
@@ -527,9 +784,12 @@ export default function TemplatePreviewPage() {
                             </label>
                             <Select
                               options={fontOptions}
-                              defaultValue={
-                                templates.find(t => t.id === selectedTemplate)
-                                  ?.config.font
+                              value={templateConfig.font}
+                              onChange={value =>
+                                setTemplateConfig(prev => ({
+                                  ...prev,
+                                  font: value,
+                                }))
                               }
                               className='w-full'
                             />
@@ -542,9 +802,12 @@ export default function TemplatePreviewPage() {
                             </label>
                             <Select
                               options={logoPositions}
-                              defaultValue={
-                                templates.find(t => t.id === selectedTemplate)
-                                  ?.config.logoPosition
+                              value={templateConfig.logoPosition}
+                              onChange={value =>
+                                setTemplateConfig(prev => ({
+                                  ...prev,
+                                  logoPosition: value,
+                                }))
                               }
                               className='w-full'
                             />
@@ -559,10 +822,12 @@ export default function TemplatePreviewPage() {
                               <label className='flex items-center space-x-2'>
                                 <input
                                   type='checkbox'
-                                  defaultChecked={
-                                    templates.find(
-                                      t => t.id === selectedTemplate
-                                    )?.config.includeSignature
+                                  checked={templateConfig.includeSignature}
+                                  onChange={e =>
+                                    setTemplateConfig(prev => ({
+                                      ...prev,
+                                      includeSignature: e.target.checked,
+                                    }))
                                   }
                                   className='rounded border-slate-300'
                                 />
@@ -573,10 +838,12 @@ export default function TemplatePreviewPage() {
                               <label className='flex items-center space-x-2'>
                                 <input
                                   type='checkbox'
-                                  defaultChecked={
-                                    templates.find(
-                                      t => t.id === selectedTemplate
-                                    )?.config.includeWatermark
+                                  checked={templateConfig.includeWatermark}
+                                  onChange={e =>
+                                    setTemplateConfig(prev => ({
+                                      ...prev,
+                                      includeWatermark: e.target.checked,
+                                    }))
                                   }
                                   className='rounded border-slate-300'
                                 />
@@ -593,16 +860,130 @@ export default function TemplatePreviewPage() {
                           <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4'>
                             Live Preview
                           </label>
-                          <div className='border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 bg-white dark:bg-slate-900 min-h-[400px] flex items-center justify-center'>
-                            <div className='text-center'>
-                              <DocumentTextIcon className='h-16 w-16 text-slate-400 mx-auto mb-4' />
-                              <p className='text-slate-600 dark:text-slate-400'>
-                                Template preview will appear here
-                              </p>
-                              <p className='text-sm text-slate-500 dark:text-slate-500 mt-2'>
-                                Changes will be reflected in real-time
-                              </p>
-                            </div>
+                          <div className='border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 bg-white dark:bg-slate-900 min-h-[400px] relative overflow-hidden'>
+                            {selectedTemplate ? (
+                              <div className='w-full h-full bg-white border rounded-lg shadow-sm overflow-hidden'>
+                                {/* Template Header */}
+                                <div
+                                  className='p-4 text-white font-semibold text-lg'
+                                  style={{
+                                    backgroundColor: templateConfig.headerColor,
+                                  }}
+                                >
+                                  <div
+                                    className={`flex items-center ${
+                                      templateConfig.logoPosition ===
+                                      'top-center'
+                                        ? 'justify-center'
+                                        : templateConfig.logoPosition ===
+                                            'top-right'
+                                          ? 'justify-end'
+                                          : 'justify-start'
+                                    }`}
+                                  >
+                                    <div className='w-8 h-8 bg-white/20 rounded mr-3'></div>
+                                    Eduflow{' '}
+                                    {templates.find(
+                                      t => t.id === selectedTemplate
+                                    )?.type === 'teacher'
+                                      ? 'Teacher'
+                                      : 'Association'}{' '}
+                                    Report
+                                  </div>
+                                </div>
+
+                                {/* Template Body */}
+                                <div
+                                  className='p-6 space-y-4'
+                                  style={{ fontFamily: templateConfig.font }}
+                                >
+                                  <div className='flex justify-between items-center border-b pb-2'>
+                                    <span className='font-medium'>
+                                      Report Period:
+                                    </span>
+                                    <span>Jan 2025 - Mar 2025</span>
+                                  </div>
+
+                                  <div className='grid grid-cols-2 gap-4 text-sm'>
+                                    <div>
+                                      <span className='font-medium'>
+                                        Total Savings:
+                                      </span>
+                                      <div className='text-lg font-bold'>
+                                        ₵2,450.00
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <span className='font-medium'>
+                                        Interest Earned:
+                                      </span>
+                                      <div className='text-lg font-bold text-green-600'>
+                                        ₵125.50
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className='mt-6 space-y-2'>
+                                    <div className='text-sm font-medium'>
+                                      Recent Transactions:
+                                    </div>
+                                    <div className='space-y-1 text-xs'>
+                                      <div className='flex justify-between p-2 bg-gray-50 rounded'>
+                                        <span>Jan 15, 2025</span>
+                                        <span>+₵200.00</span>
+                                      </div>
+                                      <div className='flex justify-between p-2 bg-gray-50 rounded'>
+                                        <span>Feb 10, 2025</span>
+                                        <span>+₵300.00</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Watermark */}
+                                  {templateConfig.includeWatermark && (
+                                    <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                                      <div className='text-6xl font-bold text-gray-100 transform rotate-45'>
+                                        PREVIEW
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Signature Block */}
+                                  {templateConfig.includeSignature && (
+                                    <div className='mt-8 pt-4 border-t'>
+                                      <div className='text-xs text-gray-600'>
+                                        <div>Generated by: Admin User</div>
+                                        <div>
+                                          Date:{' '}
+                                          {new Date().toLocaleDateString()}
+                                        </div>
+                                        <div className='mt-2 flex space-x-8'>
+                                          <div>
+                                            <div className='border-b border-gray-400 w-32 mb-1'></div>
+                                            <div>Teacher Signature</div>
+                                          </div>
+                                          <div>
+                                            <div className='border-b border-gray-400 w-32 mb-1'></div>
+                                            <div>Admin Signature</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className='text-center'>
+                                <DocumentTextIcon className='h-16 w-16 text-slate-400 mx-auto mb-4' />
+                                <p className='text-slate-600 dark:text-slate-400'>
+                                  Select a template to see preview
+                                </p>
+                                <p className='text-sm text-slate-500 dark:text-slate-500 mt-2'>
+                                  Configuration changes will be reflected in
+                                  real-time
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -616,6 +997,7 @@ export default function TemplatePreviewPage() {
                   <Card
                     variant='glass'
                     className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-lg transition-shadow cursor-pointer'
+                    onClick={handleImportTemplate}
                   >
                     <CardContent className='p-6'>
                       <div className='flex items-center space-x-4'>
@@ -710,6 +1092,58 @@ export default function TemplatePreviewPage() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Delete Confirmation Dialog */}
+          {confirmDelete.show && (
+            <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+              <Card variant='glass' className='max-w-md mx-4'>
+                <CardContent className='p-6'>
+                  <div className='flex items-center space-x-3 mb-4'>
+                    <div className='w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center'>
+                      <TrashIcon className='h-6 w-6 text-red-600' />
+                    </div>
+                    <div>
+                      <h3 className='font-semibold text-slate-900 dark:text-white'>
+                        Delete Template
+                      </h3>
+                      <p className='text-sm text-slate-600 dark:text-slate-400'>
+                        This action cannot be undone
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className='text-slate-700 dark:text-slate-300 mb-6'>
+                    Are you sure you want to delete &quot;
+                    {confirmDelete.templateName}&quot;? This will permanently
+                    remove the template and it cannot be recovered.
+                  </p>
+
+                  <div className='flex space-x-3'>
+                    <Button
+                      variant='outline'
+                      className='flex-1'
+                      onClick={() =>
+                        setConfirmDelete({
+                          show: false,
+                          templateId: '',
+                          templateName: '',
+                        })
+                      }
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant='primary'
+                      className='flex-1 bg-red-600 hover:bg-red-700'
+                      onClick={confirmDeleteTemplate}
+                    >
+                      Delete Template
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </Layout>
