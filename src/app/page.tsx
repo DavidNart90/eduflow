@@ -35,7 +35,9 @@ export default function Home() {
       <div className='text-center space-y-6'>
         {/* EduFlow Logo */}
         <div className='mx-auto h-16 w-16 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center shadow-lg'>
-          <span className='text-2xl font-bold text-white'>EF</span>
+          <span className='text-2xl font-bold dark:text-white text-primary-500'>
+            EF
+          </span>
         </div>
 
         {/* Loading Spinner */}

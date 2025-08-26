@@ -470,6 +470,9 @@ export default function AdminDashboard() {
                   size='sm'
                   className='w-full h-12 md:h-16 text-sm md:text-lg shadow-xl'
                   icon={<DocumentTextIcon className='h-5 w-5 md:h-6 md:w-6' />}
+                  onClick={() =>
+                    router.push('/admin/generate-quarterly-reports')
+                  }
                 >
                   <span className='hidden sm:inline'>
                     Generate Monthly Reports
@@ -484,6 +487,7 @@ export default function AdminDashboard() {
                   icon={
                     <CurrencyDollarIcon className='h-5 w-5 md:h-6 md:w-6' />
                   }
+                  onClick={() => router.push('/admin/quarterly-interest')}
                 >
                   <span className='hidden sm:inline'>
                     Trigger Quarterly Interest Payment
