@@ -64,13 +64,28 @@ export class ReportsClient {
     try {
       const authToken = await ReportsClient.getAuthToken();
 
-      const response = await fetch('/api/admin/reports/download', {
+      // Use the correct API endpoint based on report type
+      let apiEndpoint = '/api/admin/reports/download'; // fallback
+      let requestBody: any = request;
+
+      if (request.type === 'teacher_statement') {
+        // Use our working teacher-financial endpoint
+        apiEndpoint = '/api/admin/reports/teacher-financial';
+        requestBody = {
+          teacher_id: request.filters?.teacher_id,
+          start_date: request.filters?.start_date,
+          end_date: request.filters?.end_date,
+          format: 'pdf',
+        };
+      }
+
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -389,6 +404,7 @@ export class ReportsClient {
   static async getAllTeachers(): Promise<
     Array<{
       id: string;
+      user_id: string; // Add user_id for compatibility
       full_name: string;
       employee_id: string;
       management_unit: string;
@@ -396,7 +412,8 @@ export class ReportsClient {
   > {
     try {
       const authToken = await ReportsClient.getAuthToken();
-      const response = await fetch('/api/admin/teachers', {
+      // Use our working teacher-financial endpoint to get teachers
+      const response = await fetch('/api/admin/reports/teacher-financial', {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
