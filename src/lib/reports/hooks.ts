@@ -14,6 +14,7 @@ interface ReportTemplate {
 
 interface Teacher {
   id: string;
+  user_id: string; // Add user_id for compatibility
   full_name: string;
   employee_id: string;
   management_unit: string;

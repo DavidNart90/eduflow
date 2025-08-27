@@ -19,7 +19,7 @@ import {
   useTemplates,
   useTeachers,
 } from '@/lib/reports/hooks';
-import { formatDateForAPI, getMonthDates } from '@/lib/reports/client';
+import { formatDateForAPI, getQuarterDates } from '@/lib/reports/client';
 import {
   ArrowLeftIcon,
   ChartBarIcon,
@@ -34,10 +34,10 @@ export default function GenerateQuarterlyReportsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [selectedYear, setSelectedYear] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedQuarter, setSelectedQuarter] = useState('');
   const [selectedReportType, setSelectedReportType] = useState<
     'teacher' | 'association' | 'both'
-  >('both');
+  >('teacher'); // Default to teacher since it's working
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [includeInterest, setIncludeInterest] = useState(false);
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
@@ -98,30 +98,22 @@ export default function GenerateQuarterlyReportsPage() {
     { value: '2025', label: '2025' },
   ];
 
-  const months = [
-    { value: '', label: 'Select month...' },
-    { value: '0', label: 'January' },
-    { value: '1', label: 'February' },
-    { value: '2', label: 'March' },
-    { value: '3', label: 'April' },
-    { value: '4', label: 'May' },
-    { value: '5', label: 'June' },
-    { value: '6', label: 'July' },
-    { value: '7', label: 'August' },
-    { value: '8', label: 'September' },
-    { value: '9', label: 'October' },
-    { value: '10', label: 'November' },
-    { value: '11', label: 'December' },
+  const quarters = [
+    { value: '', label: 'Select quarter...' },
+    { value: '1', label: 'Q1 (Jan - Mar)' },
+    { value: '2', label: 'Q2 (Apr - Jun)' },
+    { value: '3', label: 'Q3 (Jul - Sep)' },
+    { value: '4', label: 'Q4 (Oct - Dec)' },
   ];
 
   const handleGenerateReports = async () => {
     // Clear any existing errors
     setShowErrors([]);
 
-    if (!selectedYear || !selectedMonth || !selectedReportType) {
+    if (!selectedYear || !selectedQuarter || !selectedReportType) {
       reportGeneration.clearError();
       setShowErrors([
-        'Please select year, month, and report type before generating reports.',
+        'Please select year, quarter, and report type before generating reports.',
       ]);
       return;
     }
@@ -137,9 +129,9 @@ export default function GenerateQuarterlyReportsPage() {
       return;
     }
 
-    const { startDate, endDate } = getMonthDates(
+    const { startDate, endDate } = getQuarterDates(
       parseInt(selectedYear),
-      parseInt(selectedMonth)
+      parseInt(selectedQuarter)
     );
 
     try {
@@ -361,13 +353,13 @@ export default function GenerateQuarterlyReportsPage() {
 
                   <div>
                     <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
-                      Month
+                      Quarter
                     </label>
                     <Select
-                      value={selectedMonth}
-                      onChange={setSelectedMonth}
-                      options={months}
-                      placeholder='Select month...'
+                      value={selectedQuarter}
+                      onChange={setSelectedQuarter}
+                      options={quarters}
+                      placeholder='Select quarter...'
                       className='w-full'
                     />
                   </div>
@@ -406,11 +398,14 @@ export default function GenerateQuarterlyReportsPage() {
                           <div className='mb-2'>
                             <Checkbox
                               checked={
-                                selectedTeachers.length === teachers.length
+                                selectedTeachers.length === teachers.length &&
+                                teachers.length > 0
                               }
                               onChange={e => {
                                 if (e.target.checked) {
-                                  setSelectedTeachers(teachers.map(t => t.id));
+                                  setSelectedTeachers(
+                                    teachers.map(t => t.user_id)
+                                  );
                                 } else {
                                   setSelectedTeachers([]);
                                 }
@@ -421,17 +416,19 @@ export default function GenerateQuarterlyReportsPage() {
                           </div>
                           {teachers.map(teacher => (
                             <Checkbox
-                              key={teacher.id}
-                              checked={selectedTeachers.includes(teacher.id)}
+                              key={teacher.user_id}
+                              checked={selectedTeachers.includes(
+                                teacher.user_id
+                              )}
                               onChange={e => {
                                 if (e.target.checked) {
                                   setSelectedTeachers(prev => [
                                     ...prev,
-                                    teacher.id,
+                                    teacher.user_id,
                                   ]);
                                 } else {
                                   setSelectedTeachers(prev =>
-                                    prev.filter(id => id !== teacher.id)
+                                    prev.filter(id => id !== teacher.user_id)
                                   );
                                 }
                               }}
@@ -467,7 +464,7 @@ export default function GenerateQuarterlyReportsPage() {
                     onClick={handleGenerateReports}
                     disabled={
                       !selectedYear ||
-                      !selectedMonth ||
+                      !selectedQuarter ||
                       !selectedReportType ||
                       reportGeneration.isGenerating ||
                       ((selectedReportType === 'teacher' ||
