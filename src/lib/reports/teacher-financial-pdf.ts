@@ -43,7 +43,7 @@ interface TeacherFinancialReportData {
     description: string;
     amount: number;
     running_balance: number;
-    status: string;
+    status: string; // Note: Only completed transactions are included in reports
   }>;
   statement: {
     opening_balance: number;
@@ -163,7 +163,11 @@ export class TeacherFinancialReportPDF {
     this.doc.setFont('times', 'normal');
     this.doc.setFontSize(this.type.h3);
     this.doc.setTextColor(...this.colors.sub);
-    this.doc.text('EduFlow Teachers’ Savings Association', titleX, cy + 7);
+    this.doc.text(
+      'New Juaben Municipal Teachers’ Savings Association',
+      titleX,
+      cy + 7
+    );
 
     // Meta (right-aligned)
     const metaY = cy - 3.5;
@@ -189,7 +193,7 @@ export class TeacherFinancialReportPDF {
 
   private teacherBlock(data: TeacherFinancialReportData) {
     // Subtle surface card
-    const h = 40;
+    const h = 60; // Increased from 50 to 60 to accommodate better spacing
     const x = this.margin;
     const w = this.pageWidth - 2 * this.margin;
 
@@ -214,15 +218,15 @@ export class TeacherFinancialReportPDF {
     const draw = (label: string, value: string, ox: number, oy: number) => {
       this.doc.setTextColor(...this.colors.light);
       this.doc.setFont('times', 'bold');
-      this.doc.text(label.toUpperCase(), ox, oy + 2);
+      this.doc.text(label.toUpperCase(), ox, oy + 5);
       this.doc.setTextColor(...this.colors.ink);
       this.doc.setFont('times', 'normal');
-      this.doc.text(value, ox, oy + 7);
+      this.doc.text(value, ox, oy + 13); // Increased from 10 to 12 for better spacing
     };
 
-    L.forEach((r, i) => draw(r[0], r[1], x + pad, this.y + pad + i * 10));
-    R.forEach((r, i) =>
-      draw(r[0], r[1], x + pad + colW, this.y + pad + i * 10)
+    L.forEach((r, i) => draw(r[0], r[1], x + pad, this.y + pad + i * 16)); // Increased from 10 to 14 for more vertical space
+    R.forEach(
+      (r, i) => draw(r[0], r[1], x + pad + colW, this.y + pad + i * 16) // Increased from 10 to 14 for more vertical space
     );
 
     this.y += h + 12;
@@ -288,6 +292,9 @@ export class TeacherFinancialReportPDF {
       ],
     ];
 
+    // Calculate available width for table
+    const availableWidth = this.pageWidth - 2 * this.margin;
+
     autoTable(this.doc, {
       startY: this.y,
       head: [['Type', 'Amount', 'Count']],
@@ -314,11 +321,16 @@ export class TeacherFinancialReportPDF {
       tableLineColor: this.colors.rule as any,
       tableLineWidth: 0.2,
       columnStyles: {
-        0: { cellWidth: 60, halign: 'left' },
-        1: { halign: 'center', fontStyle: 'bold' },
-        2: { halign: 'center' },
+        0: { cellWidth: availableWidth * 0.5, halign: 'left' }, // 50% for Type
+        1: {
+          cellWidth: availableWidth * 0.25,
+          halign: 'center',
+          fontStyle: 'bold',
+        }, // 25% for Amount
+        2: { cellWidth: availableWidth * 0.25, halign: 'center' }, // 25% for Count
       },
       margin: { left: this.margin, right: this.margin },
+      tableWidth: 'wrap',
       didDrawPage: hook => {
         this.y = (hook.cursor?.y || this.y) + 8;
       },
@@ -335,6 +347,9 @@ export class TeacherFinancialReportPDF {
         this.dmy(q.date_paid),
       ]);
 
+      // Calculate available width for table
+      const availableWidth = this.pageWidth - 2 * this.margin;
+
       autoTable(this.doc, {
         startY: this.y,
         head: [['Quarter', 'Amount', 'Date Paid']],
@@ -342,23 +357,29 @@ export class TeacherFinancialReportPDF {
         theme: 'plain',
         styles: {
           font: 'times',
-          fontSize: this.type.small,
+          halign: 'center',
+          fontSize: this.type.body,
           cellPadding: 3,
           textColor: [
-            this.colors.ink[0],
-            this.colors.ink[1],
-            this.colors.ink[2],
+            this.colors.light[0],
+            this.colors.light[1],
+            this.colors.light[2],
           ],
         },
         headStyles: { fontStyle: 'bold', textColor: this.colors.sub as any },
         tableLineColor: this.colors.rule as any,
         tableLineWidth: 0.2,
         columnStyles: {
-          0: { cellWidth: 50 },
-          1: { halign: 'right' },
-          2: { halign: 'center' },
+          0: { cellWidth: availableWidth * 0.33, halign: 'center' }, // 33% for Quarter
+          1: {
+            cellWidth: availableWidth * 0.34,
+            halign: 'center',
+            fontStyle: 'bold',
+          }, // 34% for Amount
+          2: { cellWidth: availableWidth * 0.33, halign: 'center' }, // 33% for Date Paid
         },
         margin: { left: this.margin, right: this.margin },
+        tableWidth: 'wrap',
         didDrawPage: hook => {
           this.y = (hook.cursor?.y || this.y) + 6;
         },
@@ -366,7 +387,7 @@ export class TeacherFinancialReportPDF {
     }
 
     // Summary strip (no color, just border)
-    const h = 16;
+    const h = 20;
     const w = this.pageWidth - 2 * this.margin;
     this.doc.setDrawColor(...this.colors.rule);
     this.doc.roundedRect(this.margin, this.y, w, h, 2, 2);
@@ -385,14 +406,14 @@ export class TeacherFinancialReportPDF {
     this.doc.text(
       `Payments: ${data.interest_breakdown.summary.payment_count}`,
       this.margin + 5,
-      this.y + 11
+      this.y + 15
     );
 
     if (data.interest_breakdown.summary.last_payment_date) {
       this.doc.text(
         `Last Payment: ${this.dmy(data.interest_breakdown.summary.last_payment_date)}`,
         this.pageWidth - this.margin - 5,
-        this.y + 11,
+        this.y + 15,
         { align: 'right' }
       );
     }
@@ -409,6 +430,8 @@ export class TeacherFinancialReportPDF {
   private transactionsTable(data: TeacherFinancialReportData) {
     this.sectionTitle('Recent Transactions');
 
+    // Note: Only transactions with status='completed' are included in the report data
+    // This filtering is done at the database level in the SQL functions
     const tx = (data.recent_transactions || []).slice(0, 12);
     if (!tx.length) {
       this.doc.setTextColor(...this.colors.sub);
@@ -423,42 +446,50 @@ export class TeacherFinancialReportPDF {
       t.description || '',
       this.amt(t.amount),
       this.amt(t.running_balance),
-      this.toSentenceCase(t.status) || '',
     ]);
+
+    // Calculate available width for table
+    const availableWidth = this.pageWidth - 2 * this.margin;
 
     autoTable(this.doc, {
       startY: this.y,
-      head: [['Date', 'Type', 'Description', 'Amount', 'Balance', 'Status']],
+      head: [['Date', 'Type', 'Description', 'Amount', 'Balance']],
       body,
       theme: 'plain',
       styles: {
         font: 'times',
-        fontSize: this.type.small,
+        fontSize: this.type.body,
         cellPadding: 3,
         overflow: 'linebreak',
       },
       headStyles: { fontStyle: 'bold', textColor: this.colors.sub as any },
       tableLineColor: this.colors.rule as any,
       tableLineWidth: 0.2,
-      bodyStyles: { textColor: this.colors.ink as any },
+      bodyStyles: { textColor: this.colors.light as any },
       columnStyles: {
-        0: { cellWidth: 22, halign: 'center' },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 50 },
-        3: { cellWidth: 26, halign: 'right' },
-        4: { cellWidth: 28, halign: 'right' },
-        5: { cellWidth: 22, halign: 'center' },
-      },
-      didParseCell: hook => {
-        // Very subtle status chip: light gray fill on body cells (no color semantics)
-        if (hook.section === 'body' && hook.column.index === 5) {
-          hook.cell.styles.fillColor = this.colors.chip as any;
-          hook.cell.styles.textColor = this.colors.sub as any;
-        }
+        0: { cellWidth: availableWidth * 0.15, halign: 'center' }, // 15% for Date
+        1: { cellWidth: availableWidth * 0.15, halign: 'center' }, // 15% for Type
+        2: {
+          cellWidth: availableWidth * 0.3,
+          overflow: 'ellipsize',
+          halign: 'left',
+        }, // 35% for Description
+        3: {
+          cellWidth: availableWidth * 0.175,
+          halign: 'center',
+          fontStyle: 'bold',
+        }, // 17.5% for Amount
+        4: {
+          cellWidth: availableWidth * 0.185,
+          halign: 'right',
+          fontStyle: 'bold',
+          textColor: this.colors.ink as any,
+        }, // 17.5% for Balance
       },
       margin: { left: this.margin, right: this.margin },
+      tableWidth: 'wrap',
       didDrawPage: hook => {
-        this.y = (hook.cursor?.y || this.y) + 8;
+        this.y = (hook.cursor?.y || this.y) + 10;
       },
     });
   }
@@ -477,7 +508,7 @@ export class TeacherFinancialReportPDF {
     const x = this.margin;
     const w = this.pageWidth - 2 * this.margin;
     const colW = w / 2;
-    const rowH = 12;
+    const rowH = 15;
 
     // Outer border
     this.doc.setDrawColor(...this.colors.rule);
@@ -496,15 +527,15 @@ export class TeacherFinancialReportPDF {
       oy: number,
       accent = false
     ) => {
-      this.doc.setFontSize(this.type.small);
+      this.doc.setFontSize(this.type.body);
       this.doc.setTextColor(...this.colors.light);
       this.doc.setFont('times', 'bold');
       this.doc.text(label.toUpperCase(), ox + 5, oy + 4.5);
 
       this.doc.setFont('times', accent ? 'bold' : 'normal');
-      this.doc.setFontSize(this.type.h3);
+      this.doc.setFontSize(this.type.body);
       this.doc.setTextColor(...this.colors.ink);
-      this.doc.text(value, ox + 5, oy + 9);
+      this.doc.text(value, ox + 5, oy + 12);
     };
 
     // Top row
