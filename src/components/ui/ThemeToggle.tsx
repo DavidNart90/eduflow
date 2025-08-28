@@ -39,7 +39,7 @@ export default function ThemeToggle({
         ${className}
         relative inline-flex items-center justify-center
         rounded-lg theme-toggle-transition
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        focus:outline-none
         hover:scale-105 active:scale-95
         transform-gpu
       `}

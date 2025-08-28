@@ -131,33 +131,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Header */}
           <div className='flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0'>
             <div className='flex items-center space-x-3'>
-              <div className='w-8 h-8 justify-center'>
-                <svg
-                  className='h-10 w-10'
-                  fill='url(#logoGradient)'
-                  stroke='none'
-                  viewBox='0 0 24 24'
-                  xmlns='http://www.w3.org/2000/svg'
-                >
-                  <defs>
-                    <linearGradient
-                      id='logoGradient'
-                      x1='0%'
-                      y1='0%'
-                      x2='100%'
-                      y2='100%'
-                    >
-                      <stop offset='0%' stopColor='#4323fc' />
-                      <stop offset='100%' stopColor='#667eea' />
-                    </linearGradient>
-                  </defs>
-                  <path d='M12 14l9-5-9-5-9 5 9 5z' />
-                  <path d='M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' />
-                  <path d='M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' />
-                </svg>
+              <div className='h-10 w-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center shadow-lg'>
+                <span className='text-lg font-bold dark:text-white text-primary-500'>
+                  EF
+                </span>
               </div>
               <div>
-                <h1 className='text-lg font-semibold text-gray-900 dark:text-white mt-2'>
+                <h1 className='text-lg font-semibold text-gray-900 dark:text-white'>
                   Eduflow
                 </h1>
               </div>
@@ -181,7 +161,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.name}
                   href={item.href}
                   className={`
-                    group relative flex items-center px-4 py-3 text-sm font-medium rounded-lg  transition-all duration-200
+                    group relative flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none
                     ${
                       current
                         ? 'bg-primary/10 text-primary border-l-4  border-primary dark:bg-primary/20 dark:text-primary-foreground shadow-sm'
