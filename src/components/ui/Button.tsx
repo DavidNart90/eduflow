@@ -25,21 +25,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseClasses =
-      'group relative inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden';
+      'group relative inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden';
 
     const variants = {
       primary:
-        'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl hover:scale-105 focus:ring-primary-500',
+        'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl hover:scale-105',
       secondary:
-        'bg-gradient-to-r from-secondary-100 to-secondary-200 hover:from-secondary-200 hover:to-secondary-300 text-secondary-900 border border-secondary-200 hover:scale-105 focus:ring-secondary-500',
+        'bg-gradient-to-r from-secondary-100 to-secondary-200 hover:from-secondary-200 hover:to-secondary-300 text-secondary-900 border border-secondary-200 hover:scale-105',
       success:
-        'bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white shadow-lg hover:shadow-xl hover:scale-105 focus:ring-success-500',
+        'bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white shadow-lg hover:shadow-xl hover:scale-105',
       error:
-        'bg-gradient-to-r from-error-500 to-error-600 hover:from-error-600 hover:to-error-700 text-white shadow-lg hover:shadow-xl hover:scale-105 focus:ring-error-500',
+        'bg-gradient-to-r from-error-500 to-error-600 hover:from-error-600 hover:to-error-700 text-white shadow-lg hover:shadow-xl hover:scale-105',
       ghost:
-        'bg-transparent hover:bg-secondary-100 text-secondary-700 hover:text-secondary-900 hover:scale-105 focus:ring-primary-500',
+        'bg-transparent hover:bg-secondary-100 text-secondary-700 hover:text-secondary-900 hover:scale-105',
       outline:
-        'bg-transparent border-2 border-primary-500 text-primary-600 hover:bg-primary-500 hover:text-white hover:scale-105 focus:ring-primary-500 transition-colors duration-300',
+        'bg-transparent border-2 border-primary-500 text-primary-600 hover:bg-primary-500 hover:text-white hover:scale-105 transition-colors duration-300',
     };
 
     const sizes = {

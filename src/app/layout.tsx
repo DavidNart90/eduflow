@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   title: "Eduflow - Teachers' Savings Association",
   description:
     "Progressive Web App for the New Juaben Teachers' Savings Association",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
