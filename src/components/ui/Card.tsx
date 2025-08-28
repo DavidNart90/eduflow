@@ -28,7 +28,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     const baseClasses = cn(
-      'rounded-modern theme-transition',
+      'rounded-modern transition-colors duration-150 ease-out',
       border && 'border border-border/40'
     );
 
@@ -60,7 +60,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           paddings[padding],
           hover &&
             variant !== 'interactive' &&
-            'hover:shadow-modern-lg transition-shadow duration-300 ease-out',
+            'hover:shadow-modern-lg transition-shadow',
           className
         )}
         {...props}
