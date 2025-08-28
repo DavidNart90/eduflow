@@ -89,7 +89,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public - Next.js public folder should be committed
 
 # Vuepress build output
 .vuepress/dist
