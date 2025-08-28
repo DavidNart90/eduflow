@@ -87,9 +87,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition:
-    background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-    background-image 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 /* Gradient background for light theme */
@@ -179,22 +178,9 @@ a {
 
 /* Enhanced theme transition utilities */
 .theme-transition {
-  transition:
-    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Smooth theme transition for all elements */
-* {
-  transition:
-    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: background-color, color, border-color, opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
 }
 
 /* Gradient text utilities */
@@ -339,26 +325,7 @@ a {
 /* Theme toggle specific animations */
 .theme-toggle-transition {
   transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Smooth background transition */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--background-gradient-soft);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: -1;
-}
-
-.light body::before {
-  opacity: 1;
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    color 0.2s ease;
 }
