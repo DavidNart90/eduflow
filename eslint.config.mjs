@@ -107,6 +107,7 @@ const eslintConfig = [
       'dist/**',
       '*.config.js',
       '*.config.mjs',
+      'next-env.d.ts', // Ignore Next.js generated file with triple slash references
     ],
   },
 ];
