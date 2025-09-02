@@ -1,17 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ReportsClient, ReportGenerationResult } from './client';
 
-interface ReportTemplate {
-  id: string;
-  name: string;
-  type: 'teacher' | 'association';
-  template_data: Record<string, unknown>;
-  is_default: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 interface Teacher {
   id: string;
   user_id: string; // Add user_id for compatibility
@@ -43,7 +32,6 @@ export const useReportGeneration = (options?: UseReportGenerationOptions) => {
       generateOptions: {
         startDate?: string;
         endDate?: string;
-        templateId?: string;
         generatedBy: string;
       }
     ) => {
@@ -58,7 +46,6 @@ export const useReportGeneration = (options?: UseReportGenerationOptions) => {
             start_date: generateOptions.startDate,
             end_date: generateOptions.endDate,
           },
-          template_id: generateOptions.templateId,
           generated_by: generateOptions.generatedBy,
         });
 
@@ -139,7 +126,6 @@ export const useReportGeneration = (options?: UseReportGenerationOptions) => {
       generateOptions: {
         startDate?: string;
         endDate?: string;
-        templateId?: string;
         format?: 'individual' | 'combined';
         generatedBy: string;
       }
@@ -197,147 +183,6 @@ export const useReportGeneration = (options?: UseReportGenerationOptions) => {
     generateBulkReports,
     clearError,
     clearResult,
-  };
-};
-
-export const useTemplates = () => {
-  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTemplates = useCallback(
-    async (type?: 'teacher' | 'association') => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const result = await ReportsClient.getTemplates(type);
-        setTemplates(result.templates);
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : 'Failed to fetch templates';
-        setError(errorMsg);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  const createTemplate = useCallback(
-    async (template: {
-      name: string;
-      type: 'teacher' | 'association';
-      template_data: Record<string, unknown>;
-      is_default?: boolean;
-    }) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const result = await ReportsClient.createTemplate(template);
-
-        if (result.success && result.template) {
-          setTemplates(prev => [...prev, result.template!]);
-        } else {
-          const errorMsg = result.error || 'Failed to create template';
-          setError(errorMsg);
-        }
-
-        return result;
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : 'Failed to create template';
-        setError(errorMsg);
-
-        return {
-          success: false,
-          error: errorMsg,
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  const updateTemplate = useCallback(
-    async (
-      templateId: string,
-      updates: {
-        name?: string;
-        template_data?: Record<string, unknown>;
-      }
-    ) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const result = await ReportsClient.updateTemplate(templateId, updates);
-
-        if (result.success && result.template) {
-          setTemplates(prev =>
-            prev.map(t => (t.id === templateId ? result.template! : t))
-          );
-        } else {
-          const errorMsg = result.error || 'Failed to update template';
-          setError(errorMsg);
-        }
-
-        return result;
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : 'Failed to update template';
-        setError(errorMsg);
-
-        return {
-          success: false,
-          error: errorMsg,
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  const deleteTemplate = useCallback(async (templateId: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await ReportsClient.deleteTemplate(templateId);
-
-      if (result.success) {
-        setTemplates(prev => prev.filter(t => t.id !== templateId));
-      } else {
-        const errorMsg = result.error || 'Failed to delete template';
-        setError(errorMsg);
-      }
-
-      return result;
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : 'Failed to delete template';
-      setError(errorMsg);
-
-      return {
-        success: false,
-        error: errorMsg,
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  return {
-    templates,
-    isLoading,
-    error,
-    fetchTemplates,
-    createTemplate,
-    updateTemplate,
-    deleteTemplate,
   };
 };
 

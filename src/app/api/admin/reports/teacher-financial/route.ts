@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
     const filename = `${teacher.full_name.replace(/\s+/g, '_')}_Financial_Statement_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
 
     // Log the generated report to the database
+    let reportId: string | null = null;
     try {
       // Get the database user ID by email (same approach as admin check)
       const { data: dbUser } = await supabase
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         const logResult = await supabase.rpc('log_generated_report', {
           p_report_type: 'teacher_statement',
           p_file_name: filename,
-          p_file_url: `/api/admin/reports/teacher-financial/${teacher_id}`, // API endpoint reference
+          p_file_url: `/api/admin/generated-reports/${reportId}/download`, // Will be updated after insert
           p_file_size: buffer.byteLength,
           p_generation_params: {
             teacher_id,
@@ -149,19 +150,23 @@ export async function POST(request: NextRequest) {
           p_generated_by: dbUser.id, // Use database user ID instead of Auth user ID
         });
         console.log('Log result:', logResult);
+        reportId = logResult.data?.report_id;
       }
     } catch (logError) {
       // Don't fail the request if logging fails, just log the error
       console.error('Failed to log report generation:', logError);
     }
 
-    // Return PDF as response
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': buffer.byteLength.toString(),
+    // Return success response with report information (no auto-download)
+    return NextResponse.json({
+      success: true,
+      message: `Financial statement for ${teacher.full_name} has been generated successfully`,
+      report: {
+        id: reportId,
+        file_name: filename,
+        file_size: buffer.byteLength,
+        teacher_name: teacher.full_name,
+        generated_at: new Date().toISOString(),
       },
     });
   } catch (error) {
