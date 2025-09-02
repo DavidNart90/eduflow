@@ -30,9 +30,8 @@ export default function GenerateQuarterlyReportsPage() {
   const { user } = useAuth();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedQuarter, setSelectedQuarter] = useState('');
-  const [selectedReportType, setSelectedReportType] = useState<
-    'teacher' | 'association' | 'both'
-  >('teacher'); // Default to teacher since it's working
+  const [selectedReportType, setSelectedReportType] =
+    useState<'teacher'>('teacher'); // Only teacher reports available
   const [includeInterest, setIncludeInterest] = useState(false);
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
   const [showErrors, setShowErrors] = useState<string[]>([]);
@@ -65,11 +64,7 @@ export default function GenerateQuarterlyReportsPage() {
     fetchTeachers();
   }, [fetchTeachers]);
 
-  const reportTypes = [
-    { value: 'both', label: 'Teacher & Association Reports' },
-    { value: 'teacher', label: 'Teacher Reports Only' },
-    { value: 'association', label: 'Association Reports Only' },
-  ];
+  const reportTypes = [{ value: 'teacher', label: 'Teacher Reports Only' }];
 
   const years = [
     { value: '', label: 'Select year...' },
@@ -98,10 +93,7 @@ export default function GenerateQuarterlyReportsPage() {
       return;
     }
 
-    if (
-      (selectedReportType === 'teacher' || selectedReportType === 'both') &&
-      selectedTeachers.length === 0
-    ) {
+    if (selectedReportType === 'teacher' && selectedTeachers.length === 0) {
       reportGeneration.clearError();
       setShowErrors([
         'Please select at least one teacher for teacher reports.',
@@ -115,7 +107,7 @@ export default function GenerateQuarterlyReportsPage() {
     );
 
     try {
-      if (selectedReportType === 'teacher' || selectedReportType === 'both') {
+      if (selectedReportType === 'teacher') {
         // Generate reports for each selected teacher
         for (const teacherId of selectedTeachers) {
           await reportGeneration.generateTeacherStatement(teacherId, {
@@ -124,17 +116,6 @@ export default function GenerateQuarterlyReportsPage() {
             generatedBy: user?.employee_id || user?.email || 'admin',
           });
         }
-      }
-
-      if (
-        selectedReportType === 'association' ||
-        selectedReportType === 'both'
-      ) {
-        await reportGeneration.generateAssociationSummary({
-          startDate: formatDateForAPI(startDate),
-          endDate: formatDateForAPI(endDate),
-          generatedBy: user?.employee_id || user?.email || 'admin',
-        });
       }
     } catch (error) {
       // Error handling is done via the hook's onError callback
@@ -158,8 +139,7 @@ export default function GenerateQuarterlyReportsPage() {
                   Generate Quarterly Reports
                 </h1>
                 <p className='text-slate-600 dark:text-slate-400 mt-2 md:mt-2 text-base md:text-lg lg:text-center'>
-                  Create and download PDF statements for teachers and
-                  association summary
+                  Create and download PDF statements for teachers
                 </p>
               </div>
               <Badge
@@ -277,7 +257,7 @@ export default function GenerateQuarterlyReportsPage() {
                       Template Management
                     </h2>
                     <p className='text-slate-600 dark:text-slate-400'>
-                      Customize report templates or use defaults
+                      Customize teacher report templates or use defaults
                     </p>
                   </div>
                   <Button
@@ -290,7 +270,7 @@ export default function GenerateQuarterlyReportsPage() {
                   </Button>
                 </div>
 
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div className='grid grid-cols-1 gap-6'>
                   <div className='flex items-center space-x-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'>
                     <DocumentTextIcon className='h-8 w-8 text-blue-600' />
                     <div>
@@ -299,18 +279,6 @@ export default function GenerateQuarterlyReportsPage() {
                       </h3>
                       <p className='text-sm text-slate-600 dark:text-slate-400'>
                         Individual financial statements
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className='flex items-center space-x-4 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'>
-                    <DocumentTextIcon className='h-8 w-8 text-purple-600' />
-                    <div>
-                      <h3 className='font-medium text-slate-900 dark:text-white'>
-                        Association Reports
-                      </h3>
-                      <p className='text-sm text-slate-600 dark:text-slate-400'>
-                        Quarterly summary reports
                       </p>
                     </div>
                   </div>
@@ -336,9 +304,7 @@ export default function GenerateQuarterlyReportsPage() {
                     <Select
                       value={selectedReportType}
                       onChange={value =>
-                        setSelectedReportType(
-                          value as 'teacher' | 'association' | 'both'
-                        )
+                        setSelectedReportType(value as 'teacher')
                       }
                       options={reportTypes}
                       className='w-full'
@@ -373,8 +339,7 @@ export default function GenerateQuarterlyReportsPage() {
                 </div>
 
                 {/* Teacher Selection */}
-                {(selectedReportType === 'teacher' ||
-                  selectedReportType === 'both') && (
+                {selectedReportType === 'teacher' && (
                   <div className='mb-6'>
                     <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3'>
                       Select Teachers ({selectedTeachers.length} selected)
@@ -460,8 +425,7 @@ export default function GenerateQuarterlyReportsPage() {
                       !selectedQuarter ||
                       !selectedReportType ||
                       reportGeneration.isGenerating ||
-                      ((selectedReportType === 'teacher' ||
-                        selectedReportType === 'both') &&
+                      (selectedReportType === 'teacher' &&
                         selectedTeachers.length === 0)
                     }
                     className='px-8 py-3 text-primary-500 dark:text-white bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed'

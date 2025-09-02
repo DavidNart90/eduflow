@@ -11,6 +11,7 @@ import {
   Badge,
   Select,
   Input,
+  Checkbox,
 } from '@/components/ui';
 import {
   DocumentTextIcon,
@@ -19,6 +20,7 @@ import {
   EyeIcon,
   CalendarIcon,
   UserIcon,
+  CloudArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 interface GeneratedReport {
@@ -47,6 +49,10 @@ export default function GeneratedReportsPage() {
   const [reportTypeFilter, setReportTypeFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Bulk download states
+  const [selectedReports, setSelectedReports] = useState<string[]>([]);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -136,6 +142,8 @@ export default function GeneratedReportsPage() {
 
   useEffect(() => {
     filterReports();
+    // Clear selections when filters change
+    setSelectedReports([]);
   }, [filterReports]);
 
   const handleDownload = async (reportId: string, fileName: string) => {
@@ -180,6 +188,88 @@ export default function GeneratedReportsPage() {
       setError(
         err instanceof Error ? err.message : 'Failed to download report'
       );
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (selectedReports.length === 0) {
+      setError('Please select at least one report to download');
+      return;
+    }
+
+    try {
+      setIsBulkDownloading(true);
+      setError(null);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if session is available
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch(
+        '/api/admin/generated-reports/bulk-download',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify({
+            reportIds: selectedReports,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to download reports');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `reports_bulk_download_${new Date().toISOString().split('T')[0]}.zip`;
+
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      // Clear selections and refresh reports to update download counts
+      setSelectedReports([]);
+      if (session?.access_token) {
+        fetchReports(session.access_token);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to download reports'
+      );
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
+  const handleSelectReport = (reportId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedReports(prev => [...prev, reportId]);
+    } else {
+      setSelectedReports(prev => prev.filter(id => id !== reportId));
+    }
+  };
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedReports(currentReports.map(report => report.id));
+    } else {
+      setSelectedReports([]);
     }
   };
 
@@ -237,7 +327,8 @@ export default function GeneratedReportsPage() {
               Generated Reports
             </h1>
             <p className='text-slate-600 dark:text-slate-400 mt-2'>
-              View and download all generated reports
+              View and download all generated reports. Select multiple reports
+              using checkboxes for bulk download.
             </p>
           </div>
 
@@ -272,10 +363,40 @@ export default function GeneratedReportsPage() {
                   >
                     Filters
                   </Button>
+
+                  {/* Bulk Download Button - Always visible but disabled when no selection */}
+                  <Button
+                    variant={selectedReports.length > 0 ? 'primary' : 'outline'}
+                    onClick={handleBulkDownload}
+                    disabled={isBulkDownloading || selectedReports.length === 0}
+                    icon={<CloudArrowDownIcon className='h-4 w-4' />}
+                    className={
+                      selectedReports.length > 0
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                        : ''
+                    }
+                  >
+                    {isBulkDownloading
+                      ? 'Downloading...'
+                      : selectedReports.length > 0
+                        ? `Download ${selectedReports.length} Report${selectedReports.length > 1 ? 's' : ''}`
+                        : 'Bulk Download'}
+                  </Button>
                 </div>
 
-                <div className='text-sm text-slate-600 dark:text-slate-400'>
-                  {filteredReports.length} of {reports.length} reports
+                <div className='flex items-center gap-4'>
+                  {selectedReports.length > 0 ? (
+                    <div className='text-sm text-blue-600 dark:text-blue-400 font-medium'>
+                      {selectedReports.length} selected
+                    </div>
+                  ) : (
+                    <div className='text-sm text-slate-500 dark:text-slate-500'>
+                      Select reports to enable bulk download
+                    </div>
+                  )}
+                  <div className='text-sm text-slate-600 dark:text-slate-400'>
+                    {filteredReports.length} of {reports.length} reports
+                  </div>
                 </div>
               </div>
 
@@ -335,6 +456,19 @@ export default function GeneratedReportsPage() {
                   <thead className='bg-slate-50 dark:bg-slate-800/50'>
                     <tr>
                       <th className='px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
+                        <Checkbox
+                          checked={
+                            currentReports.length > 0 &&
+                            currentReports.every(report =>
+                              selectedReports.includes(report.id)
+                            )
+                          }
+                          onChange={e => handleSelectAll(e.target.checked)}
+                          label=''
+                          className='text-xs'
+                        />
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
                         Report
                       </th>
                       <th className='px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
@@ -360,7 +494,7 @@ export default function GeneratedReportsPage() {
                   <tbody className='divide-y divide-slate-200 dark:divide-slate-700'>
                     {currentReports.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className='px-6 py-12 text-center'>
+                        <td colSpan={8} className='px-6 py-12 text-center'>
                           <DocumentTextIcon className='mx-auto h-12 w-12 text-slate-400' />
                           <p className='mt-4 text-slate-600 dark:text-slate-400'>
                             No reports found
@@ -373,6 +507,16 @@ export default function GeneratedReportsPage() {
                           key={report.id}
                           className='hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         >
+                          <td className='px-6 py-4 whitespace-nowrap'>
+                            <Checkbox
+                              checked={selectedReports.includes(report.id)}
+                              onChange={e =>
+                                handleSelectReport(report.id, e.target.checked)
+                              }
+                              label=''
+                              className='text-xs'
+                            />
+                          </td>
                           <td className='px-6 py-4 whitespace-nowrap'>
                             <div className='flex items-center'>
                               <DocumentTextIcon className='h-5 w-5 text-slate-400 mr-3' />
