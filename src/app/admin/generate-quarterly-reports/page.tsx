@@ -14,11 +14,7 @@ import {
   Select,
   Checkbox,
 } from '@/components/ui';
-import {
-  useReportGeneration,
-  useTemplates,
-  useTeachers,
-} from '@/lib/reports/hooks';
+import { useReportGeneration, useTeachers } from '@/lib/reports/hooks';
 import { formatDateForAPI, getQuarterDates } from '@/lib/reports/client';
 import {
   ArrowLeftIcon,
@@ -26,7 +22,6 @@ import {
   DocumentTextIcon,
   CheckCircleIcon,
   ClockIcon,
-  EyeIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
@@ -38,22 +33,24 @@ export default function GenerateQuarterlyReportsPage() {
   const [selectedReportType, setSelectedReportType] = useState<
     'teacher' | 'association' | 'both'
   >('teacher'); // Default to teacher since it's working
-  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [includeInterest, setIncludeInterest] = useState(false);
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
   const [showErrors, setShowErrors] = useState<string[]>([]);
+  const [successNotification, setSuccessNotification] = useState<string | null>(
+    null
+  );
 
   // Hooks for report generation
   const reportGeneration = useReportGeneration({
     onSuccess: result => {
-      if (result.file_url) {
-        // Automatically download the generated report
-        const link = document.createElement('a');
-        link.href = result.file_url;
-        link.download = result.file_name || 'report.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      if (result.success) {
+        // Show success notification instead of auto-downloading
+        setSuccessNotification(
+          result.message ||
+            'Report generated successfully! You can view and download it from the "Generated Reports" page.'
+        );
+        // Auto-hide notification after 8 seconds
+        setTimeout(() => setSuccessNotification(null), 8000);
       }
     },
     onError: () => {
@@ -61,35 +58,17 @@ export default function GenerateQuarterlyReportsPage() {
     },
   });
 
-  const {
-    templates,
-    isLoading: templatesLoading,
-    fetchTemplates,
-  } = useTemplates();
   const { teachers, isLoading: teachersLoading, fetchTeachers } = useTeachers();
 
   // Load data on component mount
   useEffect(() => {
-    fetchTemplates();
     fetchTeachers();
-  }, [fetchTemplates, fetchTeachers]);
+  }, [fetchTeachers]);
 
   const reportTypes = [
     { value: 'both', label: 'Teacher & Association Reports' },
     { value: 'teacher', label: 'Teacher Reports Only' },
     { value: 'association', label: 'Association Reports Only' },
-  ];
-
-  const templateOptions = [
-    { value: '', label: 'Use default templates...' },
-    ...templates
-      .filter(
-        t => selectedReportType === 'both' || t.type === selectedReportType
-      )
-      .map(t => ({
-        value: t.id,
-        label: t.name,
-      })),
   ];
 
   const years = [
@@ -107,8 +86,9 @@ export default function GenerateQuarterlyReportsPage() {
   ];
 
   const handleGenerateReports = async () => {
-    // Clear any existing errors
+    // Clear any existing errors and notifications
     setShowErrors([]);
+    setSuccessNotification(null);
 
     if (!selectedYear || !selectedQuarter || !selectedReportType) {
       reportGeneration.clearError();
@@ -141,7 +121,6 @@ export default function GenerateQuarterlyReportsPage() {
           await reportGeneration.generateTeacherStatement(teacherId, {
             startDate: formatDateForAPI(startDate),
             endDate: formatDateForAPI(endDate),
-            templateId: selectedTemplate || undefined,
             generatedBy: user?.employee_id || user?.email || 'admin',
           });
         }
@@ -154,7 +133,6 @@ export default function GenerateQuarterlyReportsPage() {
         await reportGeneration.generateAssociationSummary({
           startDate: formatDateForAPI(startDate),
           endDate: formatDateForAPI(endDate),
-          templateId: selectedTemplate || undefined,
           generatedBy: user?.employee_id || user?.email || 'admin',
         });
       }
@@ -195,6 +173,41 @@ export default function GenerateQuarterlyReportsPage() {
 
           {/* Main Content */}
           <div className='max-w-6xl mx-auto'>
+            {/* Success Notification */}
+            {successNotification && (
+              <Card
+                variant='glass'
+                className='border-green-200 bg-green-50 dark:bg-green-900/20 mb-6'
+              >
+                <CardContent className='p-4'>
+                  <div className='flex items-start space-x-3'>
+                    <CheckCircleIcon className='h-5 w-5 text-green-600 mt-0.5' />
+                    <div className='flex-1'>
+                      <p className='text-green-700 dark:text-green-300'>
+                        {successNotification}
+                      </p>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => router.push('/admin/generated-reports')}
+                        className='mt-2 text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-900/30'
+                      >
+                        View Generated Reports
+                      </Button>
+                    </div>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setSuccessNotification(null)}
+                      className='text-green-600 hover:text-green-700'
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Custom Error Display */}
             {showErrors.length > 0 && (
               <Card
@@ -269,13 +282,11 @@ export default function GenerateQuarterlyReportsPage() {
                   </div>
                   <Button
                     variant='primary'
-                    onClick={() =>
-                      router.push('/admin/generate-quarterly-reports/preview')
-                    }
+                    onClick={() => router.push('/admin/dashboard')}
                     className='bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
-                    icon={<EyeIcon className='h-5 w-5' />}
+                    icon={<ChartBarIcon className='h-5 w-5' />}
                   >
-                    Design Templates
+                    View Dashboard
                   </Button>
                 </div>
 
@@ -284,12 +295,10 @@ export default function GenerateQuarterlyReportsPage() {
                     <DocumentTextIcon className='h-8 w-8 text-blue-600' />
                     <div>
                       <h3 className='font-medium text-slate-900 dark:text-white'>
-                        Teacher Templates
+                        Teacher Reports
                       </h3>
                       <p className='text-sm text-slate-600 dark:text-slate-400'>
-                        {templatesLoading
-                          ? 'Loading...'
-                          : `${templates.filter(t => t.type === 'teacher').length} templates available`}
+                        Individual financial statements
                       </p>
                     </div>
                   </div>
@@ -298,12 +307,10 @@ export default function GenerateQuarterlyReportsPage() {
                     <DocumentTextIcon className='h-8 w-8 text-purple-600' />
                     <div>
                       <h3 className='font-medium text-slate-900 dark:text-white'>
-                        Association Templates
+                        Association Reports
                       </h3>
                       <p className='text-sm text-slate-600 dark:text-slate-400'>
-                        {templatesLoading
-                          ? 'Loading...'
-                          : `${templates.filter(t => t.type === 'association').length} templates available`}
+                        Quarterly summary reports
                       </p>
                     </div>
                   </div>
@@ -361,20 +368,6 @@ export default function GenerateQuarterlyReportsPage() {
                       options={quarters}
                       placeholder='Select quarter...'
                       className='w-full'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
-                      Template
-                    </label>
-                    <Select
-                      value={selectedTemplate}
-                      onChange={setSelectedTemplate}
-                      options={templateOptions}
-                      placeholder='Select template...'
-                      className='w-full'
-                      disabled={templatesLoading}
                     />
                   </div>
                 </div>
@@ -526,19 +519,17 @@ export default function GenerateQuarterlyReportsPage() {
               <div className='flex space-x-4'>
                 <Button
                   variant='outline'
-                  onClick={() =>
-                    router.push('/admin/generate-quarterly-reports/preview')
-                  }
-                  className='text-primary dark:hover:bg-primary/10'
-                >
-                  Preview Templates
-                </Button>
-                <Button
-                  variant='outline'
                   onClick={() => router.push('/admin/upload-controller-report')}
                   className='text-primary dark:hover:bg-primary/10'
                 >
                   Upload Controller Report
+                </Button>
+                <Button
+                  variant='outline'
+                  onClick={() => router.push('/admin/savings-history')}
+                  className='text-primary dark:hover:bg-primary/10'
+                >
+                  View All Transactions
                 </Button>
               </div>
             </div>

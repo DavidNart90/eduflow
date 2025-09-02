@@ -67,6 +67,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: ChartBarIcon,
     },
     {
+      name: 'Generated Reports',
+      href: '/admin/generated-reports',
+      icon: DocumentTextIcon,
+    },
+    {
       name: 'Trigger Quarterly Interest',
       href: '/admin/quarterly-interest',
       icon: CreditCardIcon,
