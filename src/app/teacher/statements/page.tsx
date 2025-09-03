@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { useTeacherReports } from '@/hooks/useTeacherReports';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import {
@@ -12,23 +13,15 @@ import {
   Badge,
   Select,
 } from '@/components/ui';
-import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   InformationCircleIcon,
-  EyeIcon,
   ArrowDownTrayIcon,
   DocumentTextIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline';
 
-interface StatementData {
-  month: string;
-  year: number;
-  status: 'available' | 'processing' | 'unavailable';
-  downloadUrl?: string;
-}
-
 const MONTHS = [
+  'All',
   'January',
   'February',
   'March',
@@ -47,68 +40,68 @@ const YEARS = [2025, 2024, 2023, 2022, 2021];
 
 export default function StatementsPage() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { reports, loading, error, fetchReports, downloadReport } =
+    useTeacherReports();
   const [selectedYear, setSelectedYear] = useState('2025');
-  const [selectedMonth, setSelectedMonth] = useState('January');
-  const [previousStatements, setPreviousStatements] = useState<StatementData[]>(
-    []
-  );
+  const [selectedMonth, setSelectedMonth] = useState('All');
+  const [filteredReports, setFilteredReports] = useState(reports);
 
+  // Filter reports based on search criteria
   useEffect(() => {
-    // Mock data for previous statements
-    const mockStatements: StatementData[] = [
-      {
-        month: 'March',
-        year: 2025,
-        status: 'available',
-        downloadUrl: '#',
-      },
-      {
-        month: 'February',
-        year: 2025,
-        status: 'available',
-        downloadUrl: '#',
-      },
-      {
-        month: 'January',
-        year: 2025,
-        status: 'available',
-        downloadUrl: '#',
-      },
-    ];
+    let filtered = reports;
 
-    const fetchStatements = () => {
-      try {
-        setLoading(true);
-
-        // For now, using mock data
-        // In production, replace with actual API call
-        setTimeout(() => {
-          setPreviousStatements(mockStatements);
-          setLoading(false);
-        }, 3000);
-      } catch {
-        setPreviousStatements(mockStatements); // Fallback to mock data
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchStatements();
+    // Filter by selected year (always filter by year)
+    if (selectedYear) {
+      filtered = filtered.filter(report => {
+        const reportDate = new Date(report.created_at);
+        const reportYear = reportDate.getFullYear().toString();
+        return reportYear === selectedYear;
+      });
     }
-  }, [user]);
 
-  const handleViewStatement = () => {
-    // Implementation for viewing statement
-    // This would typically open a PDF viewer or navigate to a statement details page
+    // Filter by selected month (only if not "All")
+    if (selectedMonth && selectedMonth !== 'All') {
+      filtered = filtered.filter(report => {
+        const reportDate = new Date(report.created_at);
+        const reportMonth = reportDate.toLocaleDateString('en-US', {
+          month: 'long',
+        });
+        return reportMonth === selectedMonth;
+      });
+    }
+
+    setFilteredReports(filtered);
+  }, [reports, selectedYear, selectedMonth]);
+
+  // Fetch reports on component mount
+  useEffect(() => {
+    if (user && reports.length === 0) {
+      fetchReports();
+    }
+  }, [user, reports.length, fetchReports]);
+
+  const handleFilterAndDownload = () => {
+    // Apply the filtering (already handled by useEffect)
+    // If there are filtered reports, download the most recent one
+    if (filteredReports.length > 0) {
+      const mostRecentReport = filteredReports[0]; // Reports are sorted by created_at desc
+      downloadReport(mostRecentReport.id, mostRecentReport.file_name);
+    } else {
+      // If no reports found for the selected period, just refresh
+      fetchReports();
+    }
   };
 
-  const handleDownload = () => {
-    // Implementation for downloading statement
-    // This would typically trigger a file download
+  const handleDownload = (reportId: string, fileName: string) => {
+    downloadReport(reportId, fileName);
   };
 
-  const getStatusBadge = (status: StatementData['status']) => {
+  const getStatusBadge = (report: { expires_at?: string | null }) => {
+    // Determine status based on report data
+    const isExpired =
+      report.expires_at && new Date(report.expires_at) < new Date();
+    const status = isExpired ? 'unavailable' : 'available';
+
     const variants = {
       available: 'success',
       processing: 'warning',
@@ -118,7 +111,7 @@ export default function StatementsPage() {
     const labels = {
       available: 'Available',
       processing: 'Processing',
-      unavailable: 'Unavailable',
+      unavailable: 'Expired',
     };
 
     return (
@@ -132,133 +125,47 @@ export default function StatementsPage() {
     return (
       <TeacherRoute>
         <Layout>
-          <div className='p-4 md:p-6 min-h-screen'>
-            {/* Loading State */}
-            <div className='space-y-8'>
+          <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900 p-4 md:p-6'>
+            <div className='mx-auto max-w-7xl space-y-6'>
               {/* Header Skeleton */}
               <div className='mb-6 md:mb-8'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-                  <div>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={350}
-                      height={40}
-                      animation='pulse'
-                      className='rounded-lg mb-3'
-                    />
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={280}
-                      height={20}
-                      animation='pulse'
-                      className='rounded-lg'
-                    />
+                  <div className='lg:w-full'>
+                    <div className='h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 w-80 animate-pulse'></div>
+                    <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-60 animate-pulse'></div>
+                    <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-96 mt-2 animate-pulse'></div>
                   </div>
-                  <MuiSkeletonComponent
-                    variant='rectangular'
-                    width={80}
-                    height={32}
-                    animation='pulse'
-                    className='rounded-full'
-                  />
+                  <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse'></div>
                 </div>
               </div>
 
-              {/* Cards Skeleton */}
-              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
-                {Array.from({ length: 2 }).map((_, index) => (
-                  <Card
-                    key={index}
-                    variant='glass'
-                    className='border-white/20 bg-white/80 dark:bg-slate-800/80'
-                  >
-                    <CardContent className='p-6'>
-                      <div className='space-y-4'>
-                        <div className='flex items-center justify-between'>
-                          <div className='space-y-2'>
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={150}
-                              height={24}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={200}
-                              height={16}
-                              animation='pulse'
-                              className='rounded-md'
-                            />
-                          </div>
-                          <MuiSkeletonComponent
-                            variant='rectangular'
-                            width={48}
-                            height={48}
-                            animation='pulse'
-                            className='rounded-full'
-                          />
-                        </div>
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={160}
-                          height={40}
-                          animation='pulse'
-                          className='rounded-md'
-                        />
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width='100%'
-                          height={48}
-                          animation='pulse'
-                          className='rounded-xl'
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Loading Statement Selection */}
+              {/* About Section Skeleton */}
               <Card
                 variant='glass'
-                className='border-white/20 bg-white/80 dark:bg-slate-800/80 mb-6'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80'
                 padding='lg'
               >
                 <CardContent className='p-4 md:p-6'>
-                  <div className='mb-6'>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={200}
-                      height={28}
-                      animation='pulse'
-                      className='mb-2 rounded-lg'
-                    />
-                  </div>
-                  <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
-                    {[1, 2, 3].map(i => (
-                      <div key={i}>
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={'50%'}
-                          height={16}
-                          animation='pulse'
-                          className='mb-2 rounded'
-                        />
-                        <MuiSkeletonComponent
-                          variant='rectangular'
-                          width={'100%'}
-                          height={40}
-                          animation='pulse'
-                          className='rounded-lg'
-                        />
+                  <div className='flex items-start space-x-4'>
+                    <div className='h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse'></div>
+                    <div className='flex-1 space-y-3'>
+                      <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded-lg w-64 animate-pulse'></div>
+                      <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-full animate-pulse'></div>
+                      <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-3/4 animate-pulse'></div>
+                      <div className='flex flex-wrap gap-2 mt-4'>
+                        {[1, 2, 3].map(i => (
+                          <div
+                            key={i}
+                            className='h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24 animate-pulse'
+                          ></div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Loading Previous Statements */}
+              {/* Statement Selection Skeleton */}
               <Card
                 variant='glass'
                 className='border-white/20 bg-white/80 dark:bg-slate-800/80'
@@ -266,60 +173,78 @@ export default function StatementsPage() {
               >
                 <CardContent className='p-4 md:p-6'>
                   <div className='mb-6'>
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={200}
-                      height={28}
-                      animation='pulse'
-                      className='mb-2 rounded-lg'
-                    />
-                    <MuiSkeletonComponent
-                      variant='rectangular'
-                      width={300}
-                      height={20}
-                      animation='pulse'
-                      className='rounded-lg'
-                    />
+                    <div className='h-7 bg-gray-200 dark:bg-gray-700 rounded-lg w-48 mb-2 animate-pulse'></div>
+                    <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-80 animate-pulse'></div>
+                  </div>
+                  <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+                    {[1, 2, 3].map(i => (
+                      <div key={i}>
+                        <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse'></div>
+                        <div className='h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full animate-pulse'></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className='mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl'>
+                    <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-full animate-pulse'></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Previous Statements Skeleton */}
+              <Card
+                variant='glass'
+                className='border-white/20 bg-white/80 dark:bg-slate-800/80'
+                padding='lg'
+              >
+                <CardContent className='p-4 md:p-6'>
+                  <div className='mb-6'>
+                    <div className='h-7 bg-gray-200 dark:bg-gray-700 rounded-lg w-48 mb-2 animate-pulse'></div>
+                    <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-80 animate-pulse'></div>
                   </div>
 
-                  {/* Loading Table */}
-                  <div className='overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700'>
+                  {/* Table Skeleton */}
+                  <div className='overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700'>
                     <table className='w-full min-w-[600px]'>
                       <thead className='bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
                         <tr>
                           {['MONTH', 'YEAR', 'STATUS', 'DOWNLOAD'].map(
                             header => (
-                              <th key={header} className='px-6 py-3'>
-                                <MuiSkeletonComponent
-                                  variant='rectangular'
-                                  width={'80%'}
-                                  height={16}
-                                  animation='pulse'
-                                  className='rounded'
-                                />
+                              <th key={header} className='px-6 py-4'>
+                                <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse'></div>
                               </th>
                             )
                           )}
                         </tr>
                       </thead>
-                      <tbody className='bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700'>
+                      <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
                         {[1, 2, 3, 4].map(i => (
-                          <tr key={i}>
-                            {[1, 2, 3, 4].map(j => (
-                              <td key={j} className='px-6 py-4'>
-                                <MuiSkeletonComponent
-                                  variant='rectangular'
-                                  width={j === 4 ? '60%' : '80%'}
-                                  height={16}
-                                  animation='pulse'
-                                  className='rounded'
-                                />
-                              </td>
-                            ))}
+                          <tr key={i} className='bg-white dark:bg-slate-900'>
+                            <td className='px-6 py-4'>
+                              <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse'></div>
+                            </td>
+                            <td className='px-6 py-4'>
+                              <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse'></div>
+                            </td>
+                            <td className='px-6 py-4'>
+                              <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse'></div>
+                            </td>
+                            <td className='px-6 py-4'>
+                              <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded w-28 animate-pulse'></div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  <div className='mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl'>
+                    <div className='flex items-start space-x-3'>
+                      <div className='h-5 w-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'></div>
+                      <div className='space-y-2 flex-1'>
+                        <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse'></div>
+                        <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-full animate-pulse'></div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -398,6 +323,41 @@ export default function StatementsPage() {
               </CardContent>
             </Card>
 
+            {/* Error Display */}
+            {error && (
+              <Card
+                variant='glass'
+                className='border-red-200 bg-red-50 dark:bg-red-900/20'
+                padding='lg'
+              >
+                <CardContent className='p-4'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='flex-shrink-0'>
+                      <div className='w-8 h-8 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center'>
+                        <InformationCircleIcon className='h-5 w-5 text-red-600 dark:text-red-400' />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className='text-sm font-medium text-red-800 dark:text-red-200'>
+                        Error Loading Reports
+                      </h4>
+                      <p className='text-sm text-red-700 dark:text-red-300'>
+                        {error}
+                      </p>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={fetchReports}
+                        className='mt-2 text-red-700 dark:text-red-300'
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Statement Selection */}
             <Card
               variant='glass'
@@ -405,8 +365,8 @@ export default function StatementsPage() {
               padding='lg'
             >
               <CardHeader
-                title='Generate Statement'
-                subtitle='Select the period for your monthly savings statement'
+                title='Filter & Download Statements'
+                subtitle='Select the period and filter your monthly savings statements'
               />
               <CardContent className='p-2 md:p-6'>
                 <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
@@ -445,12 +405,12 @@ export default function StatementsPage() {
                   <div className='flex items-end'>
                     <Button
                       variant='primary'
-                      onClick={handleViewStatement}
-                      icon={<EyeIcon className='h-4 w-4' />}
+                      onClick={handleFilterAndDownload}
+                      icon={<ArrowDownTrayIcon className='h-4 w-4' />}
                       className='w-full bg-gradient-to-r text-dark dark:text-white from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg'
                       size='md'
                     >
-                      Generate & View Statement
+                      Filter & Download
                     </Button>
                   </div>
                 </div>
@@ -460,12 +420,13 @@ export default function StatementsPage() {
                   <div className='flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400'>
                     <DocumentTextIcon className='h-4 w-4 text-blue-500' />
                     <span>
-                      Statements for{' '}
+                      Filtering for{' '}
                       <strong>
-                        {selectedMonth} {selectedYear}
+                        {selectedMonth === 'All' ? 'All months' : selectedMonth}{' '}
+                        {selectedYear}
                       </strong>{' '}
-                      will include all transactions, deductions, and interest
-                      for that period.
+                      - showing {filteredReports.length} matching reports in the
+                      table below.
                     </span>
                   </div>
                 </div>
@@ -514,7 +475,7 @@ export default function StatementsPage() {
                             </div>
                           </td>
                         </tr>
-                      ) : previousStatements.length === 0 ? (
+                      ) : filteredReports.length === 0 ? (
                         <tr>
                           <td colSpan={4} className='px-6 py-12 text-center'>
                             <div className='flex flex-col items-center space-y-3'>
@@ -526,53 +487,67 @@ export default function StatementsPage() {
                                   No statements available
                                 </p>
                                 <p className='text-slate-500 dark:text-slate-400'>
-                                  Generate your first statement using the form
-                                  above
+                                  Reports will appear when generated by admin
                                 </p>
                               </div>
                             </div>
                           </td>
                         </tr>
                       ) : (
-                        previousStatements.map((statement, index) => (
-                          <tr
-                            key={index}
-                            className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 ${
-                              index % 2 === 0
-                                ? 'bg-white dark:bg-slate-900/50'
-                                : 'bg-slate-50/50 dark:bg-slate-800/25'
-                            }`}
-                          >
-                            <td className='px-6 py-4 text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap'>
-                              {statement.month}
-                            </td>
-                            <td className='px-6 py-4 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap'>
-                              {statement.year}
-                            </td>
-                            <td className='px-6 py-4 text-sm whitespace-nowrap'>
-                              {getStatusBadge(statement.status)}
-                            </td>
-                            <td className='px-6 py-4 text-sm whitespace-nowrap'>
-                              {statement.status === 'available' ? (
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  onClick={() => handleDownload()}
-                                  icon={
-                                    <ArrowDownTrayIcon className='h-4 w-4' />
-                                  }
-                                  className='text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                                >
-                                  Download PDF
-                                </Button>
-                              ) : (
-                                <span className='text-slate-400 dark:text-slate-500 text-sm italic'>
-                                  Not available
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
+                        filteredReports.map((report, index) => {
+                          const reportDate = new Date(report.created_at);
+                          const isExpired =
+                            report.expires_at &&
+                            new Date(report.expires_at) < new Date();
+
+                          return (
+                            <tr
+                              key={report.id}
+                              className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 ${
+                                index % 2 === 0
+                                  ? 'bg-white dark:bg-slate-900/50'
+                                  : 'bg-slate-50/50 dark:bg-slate-800/25'
+                              }`}
+                            >
+                              <td className='px-6 py-4 text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap'>
+                                {reportDate.toLocaleDateString('en-US', {
+                                  month: 'long',
+                                  year: 'numeric',
+                                })}
+                              </td>
+                              <td className='px-6 py-4 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap'>
+                                {reportDate.getFullYear()}
+                              </td>
+                              <td className='px-6 py-4 text-sm whitespace-nowrap'>
+                                {getStatusBadge(report)}
+                              </td>
+                              <td className='px-6 py-4 text-sm whitespace-nowrap'>
+                                {!isExpired ? (
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    onClick={() =>
+                                      handleDownload(
+                                        report.id,
+                                        report.file_name
+                                      )
+                                    }
+                                    icon={
+                                      <ArrowDownTrayIcon className='h-4 w-4' />
+                                    }
+                                    className='text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                  >
+                                    Download PDF ({report.download_count})
+                                  </Button>
+                                ) : (
+                                  <span className='text-slate-400 dark:text-slate-500 text-sm italic'>
+                                    Expired
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

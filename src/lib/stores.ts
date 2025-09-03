@@ -45,6 +45,34 @@ export interface Statement {
   download_url?: string;
 }
 
+export interface ReportGenerationParams {
+  teacher_id?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  format?: string;
+  [key: string]: unknown;
+}
+
+export interface GeneratedReport {
+  id: string;
+  report_type:
+    | 'teacher_statement'
+    | 'association_summary'
+    | 'controller_reconciliation'
+    | 'bulk_statements';
+  file_name: string;
+  file_url?: string;
+  file_size?: number;
+  generation_params?: ReportGenerationParams;
+  teacher_id?: string;
+  generated_by: string;
+  generated_by_name?: string;
+  generated_by_employee_id?: string;
+  download_count: number;
+  created_at: string;
+  expires_at?: string;
+}
+
 export interface Teacher {
   id: string;
   email: string;
@@ -149,6 +177,7 @@ interface TeacherState {
   balance: number;
   transactions: Transaction[];
   statements: Statement[];
+  reports: GeneratedReport[];
   loading: boolean;
   error: string | null;
 
@@ -158,6 +187,9 @@ interface TeacherState {
   addTransaction: (transaction: Transaction) => void;
   setStatements: (statements: Statement[]) => void;
   addStatement: (statement: Statement) => void;
+  setReports: (reports: GeneratedReport[]) => void;
+  addReport: (report: GeneratedReport) => void;
+  updateReportDownloadCount: (id: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -168,6 +200,7 @@ export const useTeacherStore = create<TeacherState>()(set => ({
   balance: 0,
   transactions: [],
   statements: [],
+  reports: [],
   loading: false,
   error: null,
 
@@ -182,6 +215,19 @@ export const useTeacherStore = create<TeacherState>()(set => ({
     set(state => ({
       statements: [statement, ...state.statements],
     })),
+  setReports: reports => set({ reports }),
+  addReport: report =>
+    set(state => ({
+      reports: [report, ...state.reports],
+    })),
+  updateReportDownloadCount: id =>
+    set(state => ({
+      reports: state.reports.map(report =>
+        report.id === id
+          ? { ...report, download_count: report.download_count + 1 }
+          : report
+      ),
+    })),
   setLoading: loading => set({ loading }),
   setError: error => set({ error }),
   clearError: () => set({ error: null }),
@@ -190,6 +236,7 @@ export const useTeacherStore = create<TeacherState>()(set => ({
       balance: 0,
       transactions: [],
       statements: [],
+      reports: [],
       loading: false,
       error: null,
     }),
