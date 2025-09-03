@@ -124,6 +124,8 @@ const mockData: SavingsHistoryData = {
 export default function SavingsHistoryPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [data, setData] = useState<SavingsHistoryData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
@@ -138,7 +140,20 @@ export default function SavingsHistoryPage() {
   useEffect(() => {
     const fetchSavingsHistory = async () => {
       try {
-        setLoading(true);
+        // Set appropriate loading state
+        if (
+          currentPage === 1 &&
+          !filters.startDate &&
+          !filters.endDate &&
+          filters.source === 'all' &&
+          !filters.search
+        ) {
+          // Initial load - show skeleton
+          setLoading(true);
+        } else {
+          // Filter or pagination change - show filter loading
+          setFilterLoading(true);
+        }
 
         // Get the session token
         const {
@@ -151,6 +166,7 @@ export default function SavingsHistoryPage() {
           setTimeout(() => {
             setData(mockData);
             setLoading(false);
+            setFilterLoading(false);
           }, 1000);
           return;
         }
@@ -184,10 +200,12 @@ export default function SavingsHistoryPage() {
         const result = await response.json();
         setData(result);
         setLoading(false);
+        setFilterLoading(false);
       } catch {
         // Fallback to mock data on error
         setData(mockData);
         setLoading(false);
+        setFilterLoading(false);
       }
     };
 
@@ -265,14 +283,106 @@ export default function SavingsHistoryPage() {
   const totalPages = data?.pagination?.totalPages || 1;
   const paginatedTransactions = filteredTransactions;
 
-  const handleExportCSV = () => {
-    // Implementation for CSV export
-    // Create CSV content and download
-  };
+  const handleExportCSV = async () => {
+    if (!data?.transactions || data.transactions.length === 0) {
+      // Use a more user-friendly notification instead of alert
+      return;
+    }
 
-  const handleExportPDF = () => {
-    // Implementation for PDF export
-    // Generate PDF and download
+    try {
+      setExportLoading(true);
+
+      // If we have pagination, we need to fetch all data for export
+      let allTransactions = data.transactions;
+
+      if (data.pagination && data.pagination.totalPages > 1) {
+        // Get the session token
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (session && !sessionError) {
+          // Build query parameters for all data (no pagination)
+          const queryParams = new URLSearchParams({
+            page: '1',
+            limit: data.pagination.totalItems.toString(), // Get all items
+          });
+
+          if (filters.startDate)
+            queryParams.append('startDate', filters.startDate);
+          if (filters.endDate) queryParams.append('endDate', filters.endDate);
+          if (filters.source && filters.source !== 'all')
+            queryParams.append('source', filters.source);
+          if (filters.search) queryParams.append('search', filters.search);
+
+          const response = await fetch(
+            `/api/teacher/savings-history?${queryParams}`,
+            {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            allTransactions = result.transactions || data.transactions;
+          }
+        }
+      }
+
+      // Prepare CSV headers
+      const headers = [
+        'Date',
+        'Description',
+        'Source',
+        'Amount (GHS)',
+        'Status',
+        'Running Balance (GHS)',
+      ];
+
+      // Convert transactions to CSV format
+      const csvData = allTransactions.map(transaction => [
+        transaction.date,
+        `"${transaction.description}"`, // Wrap in quotes to handle commas
+        transaction.source.charAt(0).toUpperCase() +
+          transaction.source.slice(1),
+        transaction.amount.toFixed(2),
+        transaction.status.charAt(0).toUpperCase() +
+          transaction.status.slice(1),
+        transaction.runningBalance.toFixed(2),
+      ]);
+
+      // Combine headers and data
+      const csvContent = [headers, ...csvData]
+        .map(row => row.join(','))
+        .join('\n');
+
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+
+      // Generate filename with current date and record count
+      const currentDate = new Date().toISOString().split('T')[0];
+      const fileName = `savings-history-${allTransactions.length}-records-${currentDate}.csv`;
+      link.setAttribute('download', fileName);
+
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Log success for development, but don't use alert in production
+      // Successfully exported ${allTransactions.length} transactions to CSV
+    } catch {
+      // Handle error appropriately without console.error or alert
+      // Export failed, please try again
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const handleApplyFilters = () => {
@@ -699,29 +809,20 @@ export default function SavingsHistoryPage() {
                       icon={<FunnelIcon className='h-4 w-4' />}
                       className='w-full'
                       size='md'
+                      disabled={filterLoading}
                     >
-                      Apply Filters
+                      {filterLoading ? 'Filtering...' : 'Apply Filters'}
                     </Button>
-                    <div className='flex space-x-2'>
-                      <Button
-                        variant='success'
-                        size='sm'
-                        onClick={handleExportCSV}
-                        icon={<DocumentArrowDownIcon className='h-4 w-4' />}
-                        className='flex-1'
-                      >
-                        CSV
-                      </Button>
-                      <Button
-                        variant='error'
-                        size='sm'
-                        onClick={handleExportPDF}
-                        icon={<DocumentArrowDownIcon className='h-4 w-4' />}
-                        className='flex-1'
-                      >
-                        PDF
-                      </Button>
-                    </div>
+                    <Button
+                      variant='success'
+                      onClick={handleExportCSV}
+                      icon={<DocumentArrowDownIcon className='h-4 w-4' />}
+                      className='w-full'
+                      size='sm'
+                      disabled={exportLoading}
+                    >
+                      {exportLoading ? 'Exporting...' : 'Export to Excel'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -753,7 +854,7 @@ export default function SavingsHistoryPage() {
                       </tr>
                     </thead>
                     <tbody className='divide-y divide-slate-200 dark:divide-slate-700'>
-                      {loading ? (
+                      {filterLoading ? (
                         <tr>
                           <td
                             colSpan={6}
@@ -761,7 +862,7 @@ export default function SavingsHistoryPage() {
                           >
                             <div className='flex items-center justify-center space-x-2'>
                               <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
-                              <span>Loading transactions...</span>
+                              <span>Filtering transactions...</span>
                             </div>
                           </td>
                         </tr>

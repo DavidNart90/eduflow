@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context-optimized';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { useTeacherData } from '@/hooks/useTeacherData';
+import { useTeacherReports } from '@/hooks/useTeacherReports';
 import { Card, CardContent, Button, Badge } from '@/components/ui';
 import {
   ArrowTrendingUpIcon,
@@ -15,7 +16,6 @@ import {
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
   BanknotesIcon,
-  CalendarDaysIcon,
   PlusIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
@@ -26,6 +26,9 @@ export default function TeacherDashboard() {
 
   // Use the optimized hook for data fetching
   const { dashboardData, dataSource, apiStatus, loading } = useTeacherData();
+
+  // Use the teacher reports hook
+  const { reports, downloadReport } = useTeacherReports();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GH', {
@@ -643,20 +646,76 @@ export default function TeacherDashboard() {
                       </p>
                     </div>
                   </div>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => router.push('/teacher/statements')}
+                    className='text-xs text-primary hover:text-primary/80'
+                  >
+                    View All
+                  </Button>
                 </div>
 
                 <div className='space-y-6'>
-                  {/* Enhanced Month Selection */}
-                  <div className='space-y-3'>
-                    <label className='text-sm font-medium text-slate-700 dark:text-slate-300'>
-                      Select Month
-                    </label>
-                    <select className='w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm'>
-                      <option>January 2024</option>
-                      <option>December 2023</option>
-                      <option>November 2023</option>
-                    </select>
-                  </div>
+                  {/* Quick Download Section */}
+                  {reports && reports.length > 0 ? (
+                    <div className='space-y-3'>
+                      <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300'>
+                        Recent Reports ({reports.length} available)
+                      </h4>
+                      <div className='space-y-2 max-h-60 overflow-y-auto'>
+                        {reports.slice(0, 5).map(report => (
+                          <div
+                            key={report.id}
+                            className='flex items-center justify-between p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all'
+                          >
+                            <div className='flex items-center space-x-3'>
+                              <div className='w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center'>
+                                <DocumentArrowDownIcon className='h-4 w-4 text-red-600 dark:text-red-400' />
+                              </div>
+                              <div>
+                                <span className='text-sm font-medium text-slate-900 dark:text-white block'>
+                                  {report.file_name}
+                                </span>
+                                <span className='text-xs text-slate-500 dark:text-slate-400'>
+                                  {new Date(
+                                    report.created_at
+                                  ).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}{' '}
+                                  • Downloaded {report.download_count} times
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              onClick={() =>
+                                downloadReport(report.id, report.file_name)
+                              }
+                              className='text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+                            >
+                              <ArrowDownTrayIcon className='h-4 w-4' />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='text-center py-8'>
+                      <div className='w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4'>
+                        <DocumentTextIcon className='h-8 w-8 text-slate-400' />
+                      </div>
+                      <p className='text-slate-500 dark:text-slate-400 font-medium'>
+                        No reports available
+                      </p>
+                      <p className='text-sm text-slate-400 dark:text-slate-500 mt-1'>
+                        Reports will appear here when generated by admin
+                      </p>
+                    </div>
+                  )}
 
                   {/* Enhanced Download Button */}
                   <Button
@@ -667,45 +726,8 @@ export default function TeacherDashboard() {
                     iconPosition='left'
                     onClick={() => router.push('/teacher/statements')}
                   >
-                    Download PDF Statement
+                    View All Statements
                   </Button>
-
-                  {/* Enhanced Recent Downloads */}
-                  <div className='space-y-3'>
-                    <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300'>
-                      Recent Downloads
-                    </h4>
-                    <div className='space-y-2'>
-                      <div className='flex items-center justify-between p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all'>
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center'>
-                            <DocumentArrowDownIcon className='h-4 w-4 text-red-600 dark:text-red-400' />
-                          </div>
-                          <span className='text-sm font-medium text-slate-900 dark:text-white'>
-                            Dec 2023
-                          </span>
-                        </div>
-                        <div className='flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400'>
-                          <CalendarDaysIcon className='h-3 w-3' />
-                          <span>2 days ago</span>
-                        </div>
-                      </div>
-                      <div className='flex items-center justify-between p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all'>
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center'>
-                            <DocumentArrowDownIcon className='h-4 w-4 text-red-600 dark:text-red-400' />
-                          </div>
-                          <span className='text-sm font-medium text-slate-900 dark:text-white'>
-                            Nov 2023
-                          </span>
-                        </div>
-                        <div className='flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400'>
-                          <CalendarDaysIcon className='h-3 w-3' />
-                          <span>1 week ago</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
