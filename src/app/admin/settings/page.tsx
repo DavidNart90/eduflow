@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context-optimized';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Input, Badge } from '@/components/ui';
+import { useToast } from '@/hooks/useToast';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import {
   ExclamationTriangleIcon,
@@ -22,6 +23,7 @@ export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, signOut } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -44,8 +46,6 @@ export default function AdminSettingsPage() {
     new: false,
     confirm: false,
   });
-
-  const [message, setMessage] = useState<string>('');
 
   // Set form data from user context
   useEffect(() => {
@@ -120,29 +120,31 @@ export default function AdminSettingsPage() {
     if (!user?.email) return;
 
     setIsSubmitting(true);
-    setMessage('');
 
     // Validation
     if (!formData.currentPassword) {
-      setMessage('Current password is required');
+      showError('Validation Error', 'Current password is required');
       setIsSubmitting(false);
       return;
     }
 
     if (!formData.newPassword) {
-      setMessage('New password is required');
+      showError('Validation Error', 'New password is required');
       setIsSubmitting(false);
       return;
     }
 
     if (formData.newPassword.length < 8) {
-      setMessage('Password must be at least 8 characters long');
+      showError(
+        'Validation Error',
+        'Password must be at least 8 characters long'
+      );
       setIsSubmitting(false);
       return;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setMessage('Passwords do not match');
+      showError('Validation Error', 'Passwords do not match');
       setIsSubmitting(false);
       return;
     }
@@ -170,12 +172,15 @@ export default function AdminSettingsPage() {
           newPassword: '',
           confirmPassword: '',
         }));
-        setMessage('Password updated successfully!');
+        showSuccess(
+          'Password Updated',
+          'Your admin password has been updated successfully'
+        );
       } else {
-        setMessage(result.error || 'Failed to update password');
+        showError('Update Failed', result.error || 'Failed to update password');
       }
     } catch {
-      setMessage('An error occurred while updating password');
+      showError('Update Failed', 'An error occurred while updating password');
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +190,6 @@ export default function AdminSettingsPage() {
     if (!user?.email) return;
 
     setIsSubmitting(true);
-    setMessage('');
 
     try {
       const response = await fetch('/api/auth/update-profile', {
@@ -204,12 +208,15 @@ export default function AdminSettingsPage() {
       const result = await response.json();
 
       if (response.ok) {
-        setMessage('Profile updated successfully!');
+        showSuccess(
+          'Profile Updated',
+          'Your admin profile has been updated successfully'
+        );
       } else {
-        setMessage(result.error || 'Failed to update profile');
+        showError('Update Failed', result.error || 'Failed to update profile');
       }
     } catch {
-      setMessage('An error occurred while updating profile');
+      showError('Update Failed', 'An error occurred while updating profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -219,7 +226,6 @@ export default function AdminSettingsPage() {
     if (!user?.email) return;
 
     setIsSubmitting(true);
-    setMessage('');
 
     try {
       // Call the logout API endpoint
@@ -236,14 +242,23 @@ export default function AdminSettingsPage() {
       const result = await response.json();
 
       if (response.ok) {
-        setMessage('Successfully logged out from all devices');
+        showSuccess(
+          'Security Action Complete',
+          'Successfully logged out from all devices'
+        );
         // Use the auth context's signOut method to properly clear the session
         await signOut();
       } else {
-        setMessage(result.error || 'Failed to logout from all devices');
+        showError(
+          'Logout Failed',
+          result.error || 'Failed to logout from all devices'
+        );
       }
     } catch {
-      setMessage('An error occurred while logging out from all devices');
+      showError(
+        'Logout Failed',
+        'An error occurred while logging out from all devices'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -406,41 +421,6 @@ export default function AdminSettingsPage() {
                 </Badge>
               </div>
             </div>
-
-            {/* Message Display */}
-            {message && (
-              <Card
-                variant='glass'
-                className={`border-white/20 mb-6 ${
-                  message.includes('successfully')
-                    ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50'
-                    : 'bg-red-50/80 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
-                }`}
-              >
-                <CardContent className='p-4'>
-                  <div className='flex items-center space-x-3'>
-                    <div
-                      className={`flex-shrink-0 ${
-                        message.includes('successfully')
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
-                      }`}
-                    >
-                      <ExclamationTriangleIcon className='h-5 w-5' />
-                    </div>
-                    <p
-                      className={`text-sm font-medium ${
-                        message.includes('successfully')
-                          ? 'text-green-800 dark:text-green-200'
-                          : 'text-red-800 dark:text-red-200'
-                      }`}
-                    >
-                      {message}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Personal Information */}
             <Card

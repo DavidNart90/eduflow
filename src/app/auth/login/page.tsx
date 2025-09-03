@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import { useAuth } from '@/lib/auth-context-optimized';
+import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { signIn, loading: authLoading } = useAuth();
+  const { showSuccess, showError } = useToast();
 
   // Handle auth loading state
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function LoginPage() {
     setSuccess('');
 
     if (!identifier || !password) {
+      showError('Missing Information', 'Please fill in all fields');
       setError('Please fill in all fields');
       setLoading(false);
       return;
@@ -62,7 +65,9 @@ export default function LoginPage() {
         const lookupData = await lookupResponse.json();
 
         if (!lookupResponse.ok) {
-          setError(lookupData.error || 'Invalid employee ID');
+          const errorMessage = lookupData.error || 'Invalid employee ID';
+          showError('Login Failed', errorMessage);
+          setError(errorMessage);
           setLoading(false);
           return;
         }
@@ -74,11 +79,13 @@ export default function LoginPage() {
       const { error } = await signIn(email, password);
 
       if (error) {
+        showError('Login Failed', error.message);
         setError(error.message);
         setLoading(false);
       } else {
         // Let the auth context handle the redirect
         // The auth state change will trigger the appropriate redirect
+        showSuccess('Login Successful', 'Redirecting to dashboard...');
         setSuccess('Login successful! Redirecting...');
 
         // Set a timeout to reset loading state if auth context doesn&apos;t handle it

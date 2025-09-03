@@ -7,6 +7,7 @@ import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
+import { useToast } from '@/hooks/useToast';
 import Image from 'next/image';
 import {
   PhoneIcon,
@@ -36,6 +37,7 @@ interface PaymentStep {
 export default function AddSavingsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { showError, showSuccess } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'form' | 'processing' | 'success' | 'error'>(
@@ -146,6 +148,7 @@ export default function AddSavingsPage() {
     e.preventDefault();
 
     if (!validateForm()) {
+      showError('Form Error', 'Please correct the errors below and try again');
       return;
     }
 
@@ -174,6 +177,10 @@ export default function AddSavingsPage() {
 
       if (result.status === 'success') {
         setPaymentReference(result.data.reference);
+        showSuccess(
+          'Payment Initiated',
+          'Check your phone for payment authorization'
+        );
 
         // For mobile money, check the status
         if (result.data.status === 'pay_offline') {
@@ -183,6 +190,10 @@ export default function AddSavingsPage() {
         } else if (result.data.status === 'success') {
           // Payment completed immediately
           setStep('success');
+          showSuccess(
+            'Payment Successful',
+            'Your savings contribution has been added successfully'
+          );
         } else {
           // Other status - start polling
           setStep('processing');
@@ -191,6 +202,10 @@ export default function AddSavingsPage() {
       } else {
         // Payment initialization failed
         setStep('error');
+        showError(
+          'Payment Failed',
+          result.message || 'Failed to initialize payment'
+        );
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
           console.error('Payment initialization failed:', result.message);
@@ -204,6 +219,10 @@ export default function AddSavingsPage() {
         console.error('Payment error:', error);
       }
       setStep('error');
+      showError(
+        'Network Error',
+        'Failed to connect to payment service. Please try again.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -233,9 +252,14 @@ export default function AddSavingsPage() {
 
           if (data.status === 'success') {
             setStep('success');
+            showSuccess(
+              'Payment Successful',
+              'Your savings contribution has been added successfully'
+            );
             return;
           } else if (data.status === 'failed') {
             setStep('error');
+            showError('Payment Failed', 'Your payment was declined or failed');
             return;
           }
         }
@@ -247,6 +271,10 @@ export default function AddSavingsPage() {
         } else {
           // Timeout - payment is taking too long
           setStep('error');
+          showError(
+            'Payment Timeout',
+            'Payment is taking too long. Please try again or contact support'
+          );
         }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -258,6 +286,10 @@ export default function AddSavingsPage() {
           setTimeout(poll, 10000);
         } else {
           setStep('error');
+          showError(
+            'Payment Timeout',
+            'Payment verification is taking too long. Please contact support'
+          );
         }
       }
     };

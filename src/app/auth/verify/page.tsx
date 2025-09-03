@@ -6,18 +6,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
+import { useToast } from '@/hooks/useToast';
 
 function VerifyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showError, showSuccess } = useToast();
 
   // Form state
   const [step, setStep] = useState<'verifying' | 'setup' | 'expired'>(
     'verifying'
   );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [email, setEmail] = useState('');
 
   // Form slider state
@@ -84,7 +84,7 @@ function VerifyForm() {
 
     if (error) {
       setStep('expired');
-      setError(`Verification failed: ${errorDescription || error}`);
+      showError('Verification Failed', `${errorDescription || error}`);
 
       // Try to extract email from the current session or URL if available
       if (!email) {
@@ -104,7 +104,6 @@ function VerifyForm() {
       // Call verifyToken function inline to avoid dependency issues
       (async (tokenToVerify: string) => {
         setLoading(true);
-        setError('');
 
         try {
           // Check if this is a Supabase email confirmation code (UUID format)
@@ -127,7 +126,7 @@ function VerifyForm() {
             if (data.user) {
               setEmail(data.user.email || '');
               setStep('setup');
-              setSuccess(
+              showSuccess(
                 'Email verified successfully! Please complete your account setup.'
               );
               return;
@@ -150,7 +149,7 @@ function VerifyForm() {
                 if (payload.email) {
                   setEmail(payload.email);
                   setStep('setup');
-                  setSuccess(
+                  showSuccess(
                     'Email verified successfully! Please complete your account setup.'
                   );
                   return;
@@ -180,7 +179,7 @@ function VerifyForm() {
                 }
                 setEmail(data.user?.email || session.user.email || '');
                 setStep('setup');
-                setSuccess(
+                showSuccess(
                   'Email verified successfully! Please complete your account setup.'
                 );
                 return;
@@ -195,11 +194,11 @@ function VerifyForm() {
           );
         } catch (error) {
           setStep('expired');
-          setError(
+          const errorMessage =
             error instanceof Error
               ? error.message
-              : 'Invalid or expired verification token'
-          );
+              : 'Invalid or expired verification token';
+          showError('Verification Failed', errorMessage);
         } finally {
           setLoading(false);
         }
@@ -212,7 +211,6 @@ function VerifyForm() {
     setTimeout(() => {
       (async () => {
         setLoading(true);
-        setError('');
 
         try {
           // First, check if we have an active Supabase session
@@ -239,7 +237,7 @@ function VerifyForm() {
               }
               setEmail(data.user?.email || session.user.email || '');
               setStep('setup');
-              setSuccess(
+              showSuccess(
                 'Email verified successfully! Please complete your account setup.'
               );
               setLoading(false);
@@ -262,22 +260,34 @@ function VerifyForm() {
             }
             setEmail(data.user?.email || '');
             setStep('setup');
-            setSuccess(
+            showSuccess(
               'Email verified successfully! Please complete your account setup.'
             );
             return;
           }
           setStep('expired');
-          setError('No verification token provided or session expired');
+          showError(
+            'Session Error',
+            'No verification token provided or session expired'
+          );
         } catch {
           setStep('expired');
-          setError('Failed to check user status');
+          showError('Status Check Failed', 'Failed to check user status');
         } finally {
           setLoading(false);
         }
       })();
     }, 1000);
-  }, [token, stepParam, fragmentToken, email, searchParams, router]);
+  }, [
+    token,
+    stepParam,
+    fragmentToken,
+    email,
+    searchParams,
+    router,
+    showError,
+    showSuccess,
+  ]);
 
   // Listen for auth state changes from Supabase
   useEffect(() => {
@@ -287,19 +297,19 @@ function VerifyForm() {
       if (event === 'SIGNED_IN' && session?.user) {
         setEmail(session.user.email || '');
         setStep('setup');
-        setSuccess(
+        showSuccess(
           'Email verified successfully! Please complete your account setup.'
         );
         setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setStep('expired');
-        setError('Session expired. Please try signing up again.');
+        showError('Session Expired', 'Please try signing up again.');
         setLoading(false);
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         // This might happen during the verification process
         setEmail(session.user.email || '');
         setStep('setup');
-        setSuccess(
+        showSuccess(
           'Email verified successfully! Please complete your account setup.'
         );
         setLoading(false);
@@ -309,7 +319,7 @@ function VerifyForm() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [showError, showSuccess]);
 
   // Listen for hash changes
   useEffect(() => {
@@ -511,12 +521,14 @@ function VerifyForm() {
   // Submit the form
   const handleResendVerification = async () => {
     if (!email) {
-      setError('No email address available. Please go back to signup.');
+      showError(
+        'Email Missing',
+        'No email address available. Please go back to signup.'
+      );
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       const response = await fetch('/api/auth/verify', {
@@ -531,26 +543,21 @@ function VerifyForm() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(
+        showSuccess(
           'Verification email sent successfully! Please check your inbox.'
         );
         // Reset to verifying state to try again
         setStep('verifying');
-        setError('');
 
-        // Clear the success message after a delay
-        setTimeout(() => {
-          setSuccess('');
-        }, 5000);
         return;
       }
       throw new Error(data.error || 'Failed to resend verification email');
     } catch (error) {
-      setError(
+      const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to resend verification email'
-      );
+          : 'Failed to resend verification email';
+      showError('Resend Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -560,12 +567,14 @@ function VerifyForm() {
     e.preventDefault();
 
     if (!isSectionValid(1) || !isSectionValid(2)) {
-      setError('Please complete all required fields correctly');
+      showError(
+        'Validation Error',
+        'Please complete all required fields correctly'
+      );
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       // First, create the user profile
@@ -607,16 +616,19 @@ function VerifyForm() {
         }
       }
 
-      setSuccess('Account created successfully! Redirecting to dashboard...');
+      showSuccess(
+        'Account Created',
+        'Successfully! Redirecting to dashboard...'
+      );
 
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to create account'
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create account';
+      showError('Account Creation Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -679,7 +691,7 @@ function VerifyForm() {
               Verification Failed
             </h2>
             <p className='text-gray-600 mb-6'>
-              {error || 'Your verification link has expired or is invalid.'}
+              Your verification link has expired or is invalid.
             </p>
 
             {/* Resend verification options */}
@@ -777,20 +789,6 @@ function VerifyForm() {
                 ></div>
               </div>
             </div>
-
-            {/* Success Message */}
-            {success && (
-              <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-lg'>
-                <p className='text-green-800 text-sm'>{success}</p>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg'>
-                <p className='text-red-800 text-sm'>{error}</p>
-              </div>
-            )}
 
             {/* Form */}
             <form

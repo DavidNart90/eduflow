@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context-optimized';
 import { supabase } from '@/lib/supabase';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
+import { useToast } from '@/hooks/useToast';
 import {
   Card,
   CardContent,
@@ -123,6 +124,7 @@ const mockData: SavingsHistoryData = {
 
 export default function SavingsHistoryPage() {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
@@ -285,7 +287,7 @@ export default function SavingsHistoryPage() {
 
   const handleExportCSV = async () => {
     if (!data?.transactions || data.transactions.length === 0) {
-      // Use a more user-friendly notification instead of alert
+      showError('Export Failed', 'No transaction data available to export');
       return;
     }
 
@@ -375,11 +377,17 @@ export default function SavingsHistoryPage() {
       link.click();
       document.body.removeChild(link);
 
-      // Log success for development, but don't use alert in production
-      // Successfully exported ${allTransactions.length} transactions to CSV
+      // Successfully exported transactions to CSV
+      showSuccess(
+        'Export Successful',
+        `Successfully exported ${allTransactions.length} transactions to CSV`
+      );
     } catch {
-      // Handle error appropriately without console.error or alert
-      // Export failed, please try again
+      // Handle error appropriately
+      showError(
+        'Export Failed',
+        'Failed to export transactions. Please try again.'
+      );
     } finally {
       setExportLoading(false);
     }

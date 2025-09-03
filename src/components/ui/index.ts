@@ -20,6 +20,10 @@ export { default as Badge } from './Badge';
 export { default as SummaryCard } from './SummaryCard';
 export { default as ThemeToggle } from './ThemeToggle';
 
+// Notification Components
+export { default as Toast } from './Toast';
+export { default as ToastContainer } from './ToastContainer';
+
 // Loading and Error Handling Components
 export {
   default as LoadingSkeleton,

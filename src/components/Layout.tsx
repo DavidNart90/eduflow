@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/stores';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Breadcrumbs from './Breadcrumbs';
+import { ToastContainer } from './ui';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -99,6 +100,9 @@ export default function Layout({ children }: LayoutProps) {
           <div className='mx-auto'>{children}</div>
         </main>
       </div>
+
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }

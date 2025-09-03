@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { useToast } from '@/hooks/useToast';
 import {
   Card,
   CardContent,
@@ -39,6 +40,7 @@ interface GeneratedReport {
 
 export default function GeneratedReportsPage() {
   const { session, loading: authLoading } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [filteredReports, setFilteredReports] = useState<GeneratedReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,34 +60,40 @@ export default function GeneratedReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const reportsPerPage = 10;
 
-  const fetchReports = useCallback(async (accessToken: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchReports = useCallback(
+    async (accessToken: string) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      };
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        };
 
-      const response = await fetch('/api/admin/generated-reports', {
-        method: 'GET',
-        credentials: 'include',
-        headers,
-      });
+        const response = await fetch('/api/admin/generated-reports', {
+          method: 'GET',
+          credentials: 'include',
+          headers,
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch reports');
+        if (!response.ok) {
+          throw new Error('Failed to fetch reports');
+        }
+
+        const data = await response.json();
+        setReports(data.reports || []);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch reports';
+        showError('Failed to Load Reports', errorMessage);
+        setError(errorMessage); // Keep for UI state if needed
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-      setReports(data.reports || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch reports');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [showError]
+  );
 
   // Handle authentication state changes
   useEffect(() => {
@@ -97,6 +105,7 @@ export default function GeneratedReportsPage() {
     if (!session) {
       // Auth is loaded but no session - this shouldn't happen in a protected route
       setLoading(false);
+      showError('Authentication Required', 'Please log in to access this page');
       setError('Authentication required');
       return;
     }
@@ -184,16 +193,23 @@ export default function GeneratedReportsPage() {
       if (session?.access_token) {
         fetchReports(session.access_token);
       }
+
+      // Show success message
+      showSuccess('Download Successful', `Successfully downloaded ${fileName}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to download report'
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to download report';
+      showError('Download Failed', errorMessage);
+      setError(errorMessage);
     }
   };
 
   const handleBulkDownload = async () => {
     if (selectedReports.length === 0) {
-      setError('Please select at least one report to download');
+      showError(
+        'Selection Required',
+        'Please select at least one report to download'
+      );
       return;
     }
 
@@ -248,10 +264,17 @@ export default function GeneratedReportsPage() {
       if (session?.access_token) {
         fetchReports(session.access_token);
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to download reports'
+
+      // Show success message
+      showSuccess(
+        'Bulk Download Successful',
+        `Successfully downloaded ${selectedReports.length} reports`
       );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to download reports';
+      showError('Bulk Download Failed', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsBulkDownloading(false);
     }

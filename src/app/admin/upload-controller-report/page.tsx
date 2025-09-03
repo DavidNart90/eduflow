@@ -6,12 +6,12 @@ import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Badge, Select } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
+import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase';
 import {
   ArrowLeftIcon,
   CloudArrowUpIcon,
   DocumentArrowUpIcon,
-  ExclamationTriangleIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
@@ -19,7 +19,6 @@ interface UploadState {
   file: File | null;
   uploading: boolean;
   progress: number;
-  error: string | null;
   success: boolean;
 }
 
@@ -45,6 +44,7 @@ interface ProcessingResult {
 
 export default function UploadControllerReportPage() {
   const router = useRouter();
+  const { showError, showSuccess } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025');
@@ -52,7 +52,6 @@ export default function UploadControllerReportPage() {
     file: null,
     uploading: false,
     progress: 0,
-    error: null,
     success: false,
   });
   const [processingResult, setProcessingResult] =
@@ -90,6 +89,46 @@ export default function UploadControllerReportPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleFile = useCallback(
+    (file: File) => {
+      // Validate file type
+      const allowedTypes = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        showError(
+          'Invalid File Type',
+          'Only CSV and Excel files are supported'
+        );
+        setUploadState(prev => ({
+          ...prev,
+          file: null,
+        }));
+        return;
+      }
+
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        showError('File Too Large', 'File size must be less than 10MB');
+        setUploadState(prev => ({
+          ...prev,
+          file: null,
+        }));
+        return;
+      }
+
+      setUploadState(prev => ({
+        ...prev,
+        file,
+        success: false,
+      }));
+    },
+    [showError]
+  );
+
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -100,16 +139,19 @@ export default function UploadControllerReportPage() {
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFile(files[0]);
-    }
-  }, []);
+      const files = e.dataTransfer.files;
+      if (files && files[0]) {
+        handleFile(files[0]);
+      }
+    },
+    [handleFile]
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -118,47 +160,12 @@ export default function UploadControllerReportPage() {
     }
   };
 
-  const handleFile = (file: File) => {
-    // Validate file type
-    const allowedTypes = [
-      'text/csv',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setUploadState(prev => ({
-        ...prev,
-        error: 'Only CSV and Excel files are supported',
-        file: null,
-      }));
-      return;
-    }
-
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadState(prev => ({
-        ...prev,
-        error: 'File size must be less than 10MB',
-        file: null,
-      }));
-      return;
-    }
-
-    setUploadState(prev => ({
-      ...prev,
-      file,
-      error: null,
-      success: false,
-    }));
-  };
-
   const handleUpload = async () => {
     if (!uploadState.file || !selectedMonth || !selectedYear) {
-      setUploadState(prev => ({
-        ...prev,
-        error: 'Please select a month, year, and upload a file',
-      }));
+      showError(
+        'Missing Information',
+        'Please select a month, year, and upload a file'
+      );
       return;
     }
 
@@ -166,7 +173,6 @@ export default function UploadControllerReportPage() {
       ...prev,
       uploading: true,
       progress: 0,
-      error: null,
     }));
 
     try {
@@ -218,14 +224,19 @@ export default function UploadControllerReportPage() {
       }));
 
       setProcessingResult(data.result);
+      showSuccess(
+        'Upload Successful',
+        'Controller report uploaded successfully!'
+      );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to upload file. Please try again.';
+      showError('Upload Failed', errorMessage);
       setUploadState(prev => ({
         ...prev,
         uploading: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to upload file. Please try again.',
         progress: 0,
       }));
     }
@@ -236,7 +247,6 @@ export default function UploadControllerReportPage() {
       file: null,
       uploading: false,
       progress: 0,
-      error: null,
       success: false,
     });
     setSelectedMonth('');
@@ -551,18 +561,6 @@ export default function UploadControllerReportPage() {
                         </ul>
                       </div>
                     </div>
-
-                    {/* Error Display */}
-                    {uploadState.error && (
-                      <div className='mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'>
-                        <div className='flex items-center space-x-3'>
-                          <ExclamationTriangleIcon className='h-5 w-5 text-red-500' />
-                          <p className='text-sm text-red-700 dark:text-red-400'>
-                            {uploadState.error}
-                          </p>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Success Display */}
                     {uploadState.success && (
