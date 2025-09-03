@@ -21,6 +21,15 @@ export interface Notification {
   read: boolean;
 }
 
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message?: string;
+  duration?: number;
+  closable?: boolean;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
@@ -110,6 +119,7 @@ interface AppState {
   user: User | null;
   theme: 'light' | 'dark';
   notifications: Notification[];
+  toasts: Toast[];
   loading: boolean;
   error: string | null;
 
@@ -121,6 +131,15 @@ interface AppState {
   ) => void;
   removeNotification: (id: string) => void;
   markNotificationAsRead: (id: string) => void;
+
+  // Toast Actions
+  addToast: (toast: Omit<Toast, 'id'>) => void;
+  removeToast: (id: string) => void;
+  showSuccess: (title: string, message?: string) => void;
+  showError: (title: string, message?: string) => void;
+  showWarning: (title: string, message?: string) => void;
+  showInfo: (title: string, message?: string) => void;
+
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -132,6 +151,7 @@ export const useAppStore = create<AppState>()(
       user: null,
       theme: 'light',
       notifications: [],
+      toasts: [],
       loading: false,
       error: null,
 
@@ -158,6 +178,84 @@ export const useAppStore = create<AppState>()(
             n.id === id ? { ...n, read: true } : n
           ),
         })),
+
+      // Toast Actions
+      addToast: toast => {
+        const newToast: Toast = {
+          ...toast,
+          id: Date.now().toString() + Math.random(),
+          duration: toast.duration ?? 5000,
+          closable: toast.closable ?? true,
+        };
+        set(state => ({
+          toasts: [...state.toasts, newToast],
+        }));
+      },
+      removeToast: id =>
+        set(state => ({
+          toasts: state.toasts.filter(t => t.id !== id),
+        })),
+      showSuccess: (title, message) => {
+        const toast: Omit<Toast, 'id'> = {
+          type: 'success',
+          title,
+          message,
+          duration: 5000,
+          closable: true,
+        };
+        set(state => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: Date.now().toString() + Math.random() },
+          ],
+        }));
+      },
+      showError: (title, message) => {
+        const toast: Omit<Toast, 'id'> = {
+          type: 'error',
+          title,
+          message,
+          duration: 7000, // Errors stay a bit longer
+          closable: true,
+        };
+        set(state => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: Date.now().toString() + Math.random() },
+          ],
+        }));
+      },
+      showWarning: (title, message) => {
+        const toast: Omit<Toast, 'id'> = {
+          type: 'warning',
+          title,
+          message,
+          duration: 6000,
+          closable: true,
+        };
+        set(state => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: Date.now().toString() + Math.random() },
+          ],
+        }));
+      },
+      showInfo: (title, message) => {
+        const toast: Omit<Toast, 'id'> = {
+          type: 'info',
+          title,
+          message,
+          duration: 4000,
+          closable: true,
+        };
+        set(state => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: Date.now().toString() + Math.random() },
+          ],
+        }));
+      },
+
       setLoading: loading => set({ loading }),
       setError: error => set({ error }),
       clearError: () => set({ error: null }),

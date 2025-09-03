@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Badge } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase';
 import {
   ArrowLeftIcon,
@@ -67,12 +68,11 @@ interface PaymentHistoryItem {
 export default function QuarterlyInterestPage() {
   const router = useRouter();
   const { validateSession } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // Add ref to prevent multiple simultaneous calls
   const fetchingRef = useRef(false);
@@ -95,12 +95,11 @@ export default function QuarterlyInterestPage() {
     try {
       fetchingRef.current = true;
       setIsLoading(true);
-      setError(null);
 
       // Validate session before making API call
       const isSessionValid = await validateSession();
       if (!isSessionValid) {
-        setError('Session expired. Please refresh the page or log in again.');
+        showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
 
@@ -110,8 +109,9 @@ export default function QuarterlyInterestPage() {
       } = await supabase.auth.getSession();
 
       if (!currentSession?.access_token) {
-        setError(
-          'Authentication required. Please refresh the page or log in again.'
+        showError(
+          'Authentication Required',
+          'Please refresh the page or log in again'
         );
         return;
       }
@@ -140,14 +140,14 @@ export default function QuarterlyInterestPage() {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to load interest data';
-      setError(errorMessage);
+      showError('Loading Failed', errorMessage);
     } finally {
       fetchingRef.current = false;
       if (mountedRef.current) {
         setIsLoading(false);
       }
     }
-  }, [validateSession]); // Include validateSession as dependency
+  }, [validateSession, showError]); // Include dependencies
 
   useEffect(() => {
     // Set mounted to true and fetch data once on mount
@@ -164,12 +164,11 @@ export default function QuarterlyInterestPage() {
   const handleRunCalculation = async () => {
     try {
       setIsCalculating(true);
-      setError(null);
 
       // Validate session before making API call
       const isSessionValid = await validateSession();
       if (!isSessionValid) {
-        setError('Session expired. Please refresh the page or log in again.');
+        showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
 
@@ -179,8 +178,9 @@ export default function QuarterlyInterestPage() {
       } = await supabase.auth.getSession();
 
       if (!currentSession?.access_token) {
-        setError(
-          'Authentication required. Please refresh the page or log in again.'
+        showError(
+          'Authentication Required',
+          'Please refresh the page or log in again'
         );
         return;
       }
@@ -204,14 +204,17 @@ export default function QuarterlyInterestPage() {
 
       if (data.success) {
         setInterestCalculation(data.calculation);
-        setSuccess('Interest calculation completed successfully!');
+        showSuccess(
+          'Calculation Complete',
+          'Interest calculation completed successfully!'
+        );
       } else {
         throw new Error(data.error || 'Failed to calculate interest');
       }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to calculate interest';
-      setError(errorMessage);
+      showError('Calculation Failed', errorMessage);
     } finally {
       setIsCalculating(false);
     }
@@ -222,12 +225,11 @@ export default function QuarterlyInterestPage() {
 
     try {
       setIsExecuting(true);
-      setError(null);
 
       // Validate session before making API call
       const isSessionValid = await validateSession();
       if (!isSessionValid) {
-        setError('Session expired. Please refresh the page or log in again.');
+        showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
 
@@ -237,8 +239,9 @@ export default function QuarterlyInterestPage() {
       } = await supabase.auth.getSession();
 
       if (!currentSession?.access_token) {
-        setError(
-          'Authentication required. Please refresh the page or log in again.'
+        showError(
+          'Authentication Required',
+          'Please refresh the page or log in again'
         );
         return;
       }
@@ -270,7 +273,8 @@ export default function QuarterlyInterestPage() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess(
+        showSuccess(
+          'Payment Complete',
           `Interest payment executed successfully! Payment ID: ${data.payment_id}`
         );
         setShowConfirmation(false);
@@ -285,7 +289,7 @@ export default function QuarterlyInterestPage() {
         error instanceof Error
           ? error.message
           : 'Failed to execute interest payment';
-      setError(errorMessage);
+      showError('Payment Failed', errorMessage);
     } finally {
       setIsExecuting(false);
     }
@@ -391,31 +395,6 @@ export default function QuarterlyInterestPage() {
                   </Badge>
                 </div>
               </div>
-
-              {/* Error/Success Messages */}
-              {error && (
-                <div className='max-w-6xl mx-auto mb-6'>
-                  <div className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4'>
-                    <div className='flex items-center gap-2'>
-                      <ExclamationTriangleIcon className='h-5 w-5 text-red-600 dark:text-red-400' />
-                      <p className='text-red-800 dark:text-red-200'>{error}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {success && (
-                <div className='max-w-6xl mx-auto mb-6'>
-                  <div className='bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4'>
-                    <div className='flex items-center gap-2'>
-                      <CheckCircleIcon className='h-5 w-5 text-green-600 dark:text-green-400' />
-                      <p className='text-green-800 dark:text-green-200'>
-                        {success}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Main Content */}
               <div className='max-w-6xl mx-auto'>

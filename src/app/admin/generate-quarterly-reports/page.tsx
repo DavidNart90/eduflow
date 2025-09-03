@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/lib/auth-context-optimized';
+import { useToast } from '@/hooks/useToast';
 import {
   Card,
   CardContent,
@@ -28,6 +29,7 @@ import {
 export default function GenerateQuarterlyReportsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedQuarter, setSelectedQuarter] = useState('');
   const [selectedReportType, setSelectedReportType] =
@@ -35,25 +37,27 @@ export default function GenerateQuarterlyReportsPage() {
   const [includeInterest, setIncludeInterest] = useState(false);
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
   const [showErrors, setShowErrors] = useState<string[]>([]);
-  const [successNotification, setSuccessNotification] = useState<string | null>(
-    null
-  );
 
   // Hooks for report generation
   const reportGeneration = useReportGeneration({
     onSuccess: result => {
       if (result.success) {
-        // Show success notification instead of auto-downloading
-        setSuccessNotification(
+        // Show success toast notification
+        showSuccess(
+          'Report Generated Successfully',
           result.message ||
-            'Report generated successfully! You can view and download it from the "Generated Reports" page.'
+            'You can view and download it from the "Generated Reports" page.'
         );
-        // Auto-hide notification after 8 seconds
-        setTimeout(() => setSuccessNotification(null), 8000);
       }
     },
-    onError: () => {
-      // Error handling is done via UI notification
+    onError: error => {
+      // Show error toast for failed operations
+      showError(
+        'Report Generation Failed',
+        typeof error === 'string'
+          ? error
+          : 'Failed to generate report. Please try again.'
+      );
     },
   });
 
@@ -81,9 +85,8 @@ export default function GenerateQuarterlyReportsPage() {
   ];
 
   const handleGenerateReports = async () => {
-    // Clear any existing errors and notifications
+    // Clear any existing errors
     setShowErrors([]);
-    setSuccessNotification(null);
 
     if (!selectedYear || !selectedQuarter || !selectedReportType) {
       reportGeneration.clearError();
@@ -153,41 +156,6 @@ export default function GenerateQuarterlyReportsPage() {
 
           {/* Main Content */}
           <div className='max-w-6xl mx-auto'>
-            {/* Success Notification */}
-            {successNotification && (
-              <Card
-                variant='glass'
-                className='border-green-200 bg-green-50 dark:bg-green-900/20 mb-6'
-              >
-                <CardContent className='p-4'>
-                  <div className='flex items-start space-x-3'>
-                    <CheckCircleIcon className='h-5 w-5 text-green-600 mt-0.5' />
-                    <div className='flex-1'>
-                      <p className='text-green-700 dark:text-green-300'>
-                        {successNotification}
-                      </p>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => router.push('/admin/generated-reports')}
-                        className='mt-2 text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-900/30'
-                      >
-                        View Generated Reports
-                      </Button>
-                    </div>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => setSuccessNotification(null)}
-                      className='text-green-600 hover:text-green-700'
-                    >
-                      Dismiss
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Custom Error Display */}
             {showErrors.length > 0 && (
               <Card

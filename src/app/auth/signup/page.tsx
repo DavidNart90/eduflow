@@ -6,14 +6,14 @@ import { useAuth } from '@/lib/auth-context-optimized';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useToast } from '@/hooks/useToast';
 
 export default function SignupPage() {
   const [currentSection, setCurrentSection] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const { signUp } = useAuth();
   const router = useRouter();
+  const { showError, showSuccess } = useToast();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -193,44 +193,20 @@ export default function SignupPage() {
     }
   };
 
-  // Clear form function
-  const clearForm = () => {
-    setFormData({
-      email: '',
-      fullName: '',
-      employeeId: '',
-      school: '',
-      phoneNumber: '',
-      password: '',
-      confirmPassword: '',
-    });
-
-    // Reset validation state
-    setValidation({
-      email: { isValid: false, message: '' },
-      fullName: { isValid: false, message: '' },
-      employeeId: { isValid: false, message: '' },
-      school: { isValid: false, message: '' },
-      phoneNumber: { isValid: false, message: '' },
-      password: { isValid: false, message: '' },
-      confirmPassword: { isValid: false, message: '' },
-    });
-
-    // Go back to first section
-    setCurrentSection(1);
-  };
-
   // Submit the form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!isSectionValid(1) || !isSectionValid(2)) {
-      setError('Please complete all required fields correctly');
+      showError(
+        'Validation Error',
+        'Please complete all required fields correctly'
+      );
       return;
     }
 
     setLoading(true);
-    setError('');
+    showError('', '');
 
     try {
       // First, check if employee ID is already taken
@@ -245,7 +221,10 @@ export default function SignupPage() {
       const employeeIdCheckData = await employeeIdCheckResponse.json();
 
       if (!employeeIdCheckResponse.ok) {
-        setError(employeeIdCheckData.error || 'Failed to check employee ID');
+        showError(
+          'Employee ID Check Failed',
+          employeeIdCheckData.error || 'Failed to check employee ID'
+        );
         setLoading(false);
         return;
       }
@@ -255,7 +234,8 @@ export default function SignupPage() {
         employeeIdCheckData.error &&
         employeeIdCheckData.error.includes('already registered')
       ) {
-        setError(
+        showError(
+          'Employee ID Already Registered',
           'This Employee ID is already registered. Please use a different Employee ID.'
         );
         setLoading(false);
@@ -264,7 +244,8 @@ export default function SignupPage() {
 
       // Then check if format validation failed
       if (!employeeIdCheckData.valid) {
-        setError(
+        showError(
+          'Employee ID Validation Failed',
           employeeIdCheckData.message || 'Employee ID validation failed'
         );
         setLoading(false);
@@ -284,7 +265,10 @@ export default function SignupPage() {
       const emailCheckData = await emailCheckResponse.json();
 
       if (!emailCheckResponse.ok) {
-        setError(emailCheckData.error || 'Failed to check email');
+        showError(
+          'Email Check Failed',
+          emailCheckData.error || 'Failed to check email'
+        );
         setLoading(false);
         return;
       }
@@ -294,7 +278,8 @@ export default function SignupPage() {
         emailCheckData.error &&
         emailCheckData.error.includes('already registered')
       ) {
-        setError(
+        showError(
+          'Email Already Registered',
           emailCheckData.message ||
             'An account with this email already exists. Please try logging in instead.'
         );
@@ -319,11 +304,12 @@ export default function SignupPage() {
 
       if (error) {
         if (error.message.includes('already registered')) {
-          setError(
+          showError(
+            'Account Already Exists',
             'An account with this email already exists. Please try logging in instead.'
           );
         } else {
-          setError(error.message);
+          showError('Signup Failed', error.message);
         }
         setLoading(false);
         return;
@@ -354,7 +340,10 @@ export default function SignupPage() {
         }
 
         // Profile created successfully
-        setSuccess('Account created successfully! Redirecting to dashboard...');
+        showSuccess(
+          'Account Created Successfully',
+          'Redirecting to dashboard...'
+        );
 
         // Now confirm the email automatically since we're not using email verification
         try {
@@ -383,7 +372,8 @@ export default function SignupPage() {
         }
         router.replace('/teacher/dashboard');
       } catch (profileError) {
-        setError(
+        showError(
+          'Profile Setup Failed',
           `Account created but profile setup failed: ${profileError instanceof Error ? profileError.message : 'Unknown error'}. Please contact support.`
         );
 
@@ -391,7 +381,10 @@ export default function SignupPage() {
         // They should contact support to complete their setup
       }
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      showError(
+        'Unexpected Error',
+        'An unexpected error occurred. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -421,12 +414,6 @@ export default function SignupPage() {
 
         {/* Signup Form */}
         <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 md:p-8 space-y-4 md:space-y-6 border border-gray-200 dark:border-gray-700'>
-          {success && (
-            <div className='bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-xl text-sm'>
-              {success}
-            </div>
-          )}
-
           {/* Progress Indicator */}
           <div className='mb-8'>
             <div className='flex items-center justify-between mb-2'>
@@ -444,24 +431,6 @@ export default function SignupPage() {
               ></div>
             </div>
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm'>
-              <div className='flex items-start justify-between'>
-                <div className='flex-1'>
-                  <p className='font-medium'>Error</p>
-                  <p className='mt-1'>{error}</p>
-                </div>
-                <button
-                  onClick={clearForm}
-                  className='ml-4 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium'
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Form */}
           <form

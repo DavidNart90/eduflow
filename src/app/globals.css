@@ -329,3 +329,13 @@ a {
     opacity 0.2s ease,
     color 0.2s ease;
 }
+
+/* Toast notifications animations */
+@keyframes shrink-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
