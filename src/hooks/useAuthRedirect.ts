@@ -8,7 +8,9 @@ export function useAuthRedirect() {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!loading && !hasRedirected.current) {
+    let isMounted = true;
+
+    if (!loading && !hasRedirected.current && isMounted) {
       if (!user) {
         // If not authenticated, redirect to login
         hasRedirected.current = true;
@@ -23,6 +25,10 @@ export function useAuthRedirect() {
         }
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, loading, router]);
 
   return { user, loading };

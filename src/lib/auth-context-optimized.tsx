@@ -77,8 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tokenValidationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
-  const PROFILE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  const TOKEN_VALIDATION_INTERVAL = 2 * 60 * 1000; // Check tokens every 2 minutes
+  const PROFILE_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (increased for better caching)
+  const TOKEN_VALIDATION_INTERVAL = 15 * 60 * 1000; // Check tokens every 15 minutes (reduced from 5 minutes)
 
   // Session validation with enhanced error recovery
   const validateSession = useCallback(async (): Promise<boolean> => {

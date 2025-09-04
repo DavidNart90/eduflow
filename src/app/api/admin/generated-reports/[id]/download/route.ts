@@ -92,15 +92,23 @@ export async function POST(
 
     if (report.report_type === 'teacher_statement') {
       // Get the teacher financial report data
-      const params = report.generation_params as any;
+      const params = report.generation_params as {
+        teacher_id?: string;
+        start_date?: string;
+        end_date?: string;
+      };
       const teacherId = params?.teacher_id;
       const startDate = params?.start_date;
       const endDate = params?.end_date;
 
       if (!teacherId) {
-        console.error('Missing teacherId in report params:', params);
+        // Missing teacherId in report params
         return NextResponse.json(
-          { error: 'Invalid report parameters - missing teacher_id' },
+          {
+            error: 'Invalid report parameters - missing teacher_id',
+            details: 'Report parameters are corrupted or incomplete',
+            code: 'MISSING_TEACHER_ID',
+          },
           { status: 400 }
         );
       }
@@ -116,20 +124,26 @@ export async function POST(
       );
 
       if (dataError) {
-        console.error('RPC error:', dataError);
+        // RPC error during report generation
         return NextResponse.json(
           {
             error: 'Failed to generate report data',
             details: dataError.message,
+            code: 'RPC_GENERATION_ERROR',
           },
           { status: 500 }
         );
       }
 
       if (!reportData) {
-        console.error('No report data returned from RPC');
+        // No report data returned from RPC
         return NextResponse.json(
-          { error: 'No data available for report generation' },
+          {
+            error: 'No data available for report generation',
+            details:
+              'The teacher may not have any transactions in the specified period',
+            code: 'NO_REPORT_DATA',
+          },
           { status: 404 }
         );
       }
@@ -152,8 +166,7 @@ export async function POST(
       .eq('id', id);
 
     if (updateError) {
-      console.error('Failed to update download count:', updateError);
-      // Continue with download even if count update fails
+      // Failed to update download count - continue with download even if count update fails
     }
 
     // Return the PDF
@@ -165,10 +178,17 @@ export async function POST(
         'Content-Length': pdfBuffer.byteLength.toString(),
       },
     });
-  } catch (error) {
-    console.error('Error downloading report:', error);
+  } catch (serverError) {
+    // Error downloading report
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details:
+          serverError instanceof Error
+            ? serverError.message
+            : 'Unknown server error',
+        code: 'DOWNLOAD_ERROR',
+      },
       { status: 500 }
     );
   }

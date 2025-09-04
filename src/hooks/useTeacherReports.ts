@@ -54,7 +54,10 @@ export function useTeacherReports(): UseTeacherReportsReturn {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch reports';
       setError(errorMessage);
-      console.error('Error fetching teacher reports:', err);
+      // Error logged for development debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching teacher reports:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -102,7 +105,10 @@ export function useTeacherReports(): UseTeacherReportsReturn {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to download report';
       setError(errorMessage);
-      console.error('Error downloading report:', err);
+      // Error logged for development debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error downloading report:', err);
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -110,9 +116,15 @@ export function useTeacherReports(): UseTeacherReportsReturn {
 
   // Auto-fetch reports when component mounts or session changes
   useEffect(() => {
-    if (session?.access_token && reports.length === 0) {
+    let isMounted = true;
+
+    if (session?.access_token && reports.length === 0 && isMounted) {
       fetchReports();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [session?.access_token, fetchReports, reports.length]);
 
   return {

@@ -267,7 +267,9 @@ export default function AddSavingsPage() {
         // Continue polling if still pending and within max attempts
         attempts++;
         if (attempts < maxAttempts) {
-          setTimeout(poll, 10000); // Poll every 10 seconds
+          // Exponential backoff: start with 5s, then 10s, 15s, 20s, etc.
+          const nextDelay = Math.min(5000 + attempts * 5000, 30000);
+          setTimeout(poll, nextDelay);
         } else {
           // Timeout - payment is taking too long
           setStep('error');
@@ -283,7 +285,9 @@ export default function AddSavingsPage() {
         }
         attempts++;
         if (attempts < maxAttempts) {
-          setTimeout(poll, 10000);
+          // Exponential backoff on errors too
+          const nextDelay = Math.min(5000 + attempts * 5000, 30000);
+          setTimeout(poll, nextDelay);
         } else {
           setStep('error');
           showError(

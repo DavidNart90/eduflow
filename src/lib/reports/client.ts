@@ -25,6 +25,13 @@ export interface ReportGenerationResult {
   estimated_duration?: number;
   message?: string;
   error?: string;
+  details?: string;
+  code?: string;
+  toast?: {
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message?: string;
+  };
 }
 
 export class ReportsClient {
@@ -86,10 +93,14 @@ export class ReportsClient {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorResponse = await response.json();
         return {
           success: false,
-          error: `Report generation failed: ${errorText}`,
+          error:
+            errorResponse.error ||
+            `Report generation failed: ${response.statusText}`,
+          details: errorResponse.details,
+          code: errorResponse.code,
         };
       }
 
@@ -102,17 +113,21 @@ export class ReportsClient {
           report_id: result.report?.id,
           file_name: result.report?.file_name,
           file_size: result.report?.file_size,
+          toast: result.toast, // Include toast information from server
         };
       }
 
       // For other types, expect JSON response
       const result = await response.json();
       return result;
-    } catch (error) {
+    } catch (clientError) {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : 'Unknown error occurred',
+          clientError instanceof Error
+            ? clientError.message
+            : 'Unknown error occurred',
+        code: 'CLIENT_ERROR',
       };
     }
   }
@@ -190,8 +205,8 @@ export class ReportsClient {
 
       const data = await response.json();
       return data.teachers || [];
-    } catch (error) {
-      console.error('Error fetching teachers:', error);
+    } catch {
+      // Error fetching teachers
       return [];
     }
   }

@@ -65,17 +65,17 @@ export class TeacherFinancialReportPDF {
 
   // Neutral palette
   private colors = {
-    ink: [59, 130, 246],
-    sub: [90, 98, 108],
-    light: [130, 138, 149],
-    rule: [224, 229, 236],
-    surface: [248, 249, 251],
-    white: [255, 255, 255],
-    chip: [243, 244, 246],
-    success: [16, 185, 129],
-    warning: [245, 158, 11],
-    danger: [239, 68, 68],
-  } as const;
+    ink: [59, 130, 246] as [number, number, number],
+    sub: [90, 98, 108] as [number, number, number],
+    light: [130, 138, 149] as [number, number, number],
+    rule: [224, 229, 236] as [number, number, number],
+    surface: [248, 249, 251] as [number, number, number],
+    white: [255, 255, 255] as [number, number, number],
+    chip: [243, 244, 246] as [number, number, number],
+    success: [16, 185, 129] as [number, number, number],
+    warning: [245, 158, 11] as [number, number, number],
+    danger: [239, 68, 68] as [number, number, number],
+  };
 
   // Type scale (times)
   private type = {
@@ -95,13 +95,13 @@ export class TeacherFinancialReportPDF {
   });
   private amt = (n: number) =>
     this.ghFormatter.format(n).replace('GHS', 'GHS').trim();
-  private dmy = (iso: string) => {
+  private static dmy(iso: string) {
     const d = new Date(iso);
     const dd = `${d.getDate()}`.padStart(2, '0');
     const mm = `${d.getMonth() + 1}`.padStart(2, '0');
     const yy = d.getFullYear();
     return `${dd}/${mm}/${yy}`;
-  };
+  }
 
   constructor() {
     this.doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
@@ -174,7 +174,7 @@ export class TeacherFinancialReportPDF {
     this.doc.setFontSize(this.type.body);
     this.doc.setTextColor(...this.colors.light);
     this.doc.text(
-      `Generated: ${this.dmy(data.current_date)}`,
+      `Generated: ${TeacherFinancialReportPDF.dmy(data.current_date)}`,
       this.pageWidth - this.margin,
       metaY + 4,
       { align: 'right' }
@@ -211,7 +211,7 @@ export class TeacherFinancialReportPDF {
     const R = [
       ['Management Unit', data.teacher.management_unit],
       ['Phone', data.teacher.phone_number || 'Not provided'],
-      ['Member Since', this.dmy(data.teacher.created_at)],
+      ['Member Since', TeacherFinancialReportPDF.dmy(data.teacher.created_at)],
     ];
 
     this.doc.setFontSize(this.type.body);
@@ -312,13 +312,13 @@ export class TeacherFinancialReportPDF {
       },
       headStyles: {
         fontStyle: 'bold',
-        textColor: this.colors.sub as any,
-        fillColor: this.colors.white as any,
+        textColor: this.colors.sub,
+        fillColor: this.colors.white,
         halign: 'center',
       },
       bodyStyles: {},
       // minimalist grid
-      tableLineColor: this.colors.rule as any,
+      tableLineColor: this.colors.rule,
       tableLineWidth: 0.2,
       columnStyles: {
         0: { cellWidth: availableWidth * 0.5, halign: 'left' }, // 50% for Type
@@ -344,7 +344,7 @@ export class TeacherFinancialReportPDF {
       const body: RowInput[] = data.interest_breakdown.quarterly.map(q => [
         `Q${q.quarter} ${q.year}`,
         this.amt(q.amount),
-        this.dmy(q.date_paid),
+        TeacherFinancialReportPDF.dmy(q.date_paid),
       ]);
 
       // Calculate available width for table
@@ -366,8 +366,8 @@ export class TeacherFinancialReportPDF {
             this.colors.light[2],
           ],
         },
-        headStyles: { fontStyle: 'bold', textColor: this.colors.sub as any },
-        tableLineColor: this.colors.rule as any,
+        headStyles: { fontStyle: 'bold', textColor: this.colors.sub },
+        tableLineColor: this.colors.rule,
         tableLineWidth: 0.2,
         columnStyles: {
           0: { cellWidth: availableWidth * 0.33, halign: 'center' }, // 33% for Quarter
@@ -411,7 +411,7 @@ export class TeacherFinancialReportPDF {
 
     if (data.interest_breakdown.summary.last_payment_date) {
       this.doc.text(
-        `Last Payment: ${this.dmy(data.interest_breakdown.summary.last_payment_date)}`,
+        `Last Payment: ${TeacherFinancialReportPDF.dmy(data.interest_breakdown.summary.last_payment_date)}`,
         this.pageWidth - this.margin - 5,
         this.y + 15,
         { align: 'right' }
@@ -421,7 +421,7 @@ export class TeacherFinancialReportPDF {
     this.y += h + 10;
   }
 
-  private toSentenceCase(str: string): string {
+  private static toSentenceCase(str: string): string {
     if (!str) return '';
     const lower = str.toLowerCase();
     return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -441,8 +441,8 @@ export class TeacherFinancialReportPDF {
     }
 
     const body: RowInput[] = tx.map(t => [
-      this.dmy(t.date),
-      this.toSentenceCase(t.type) || '',
+      TeacherFinancialReportPDF.dmy(t.date),
+      TeacherFinancialReportPDF.toSentenceCase(t.type) || '',
       t.description || '',
       this.amt(t.amount),
       this.amt(t.running_balance),
@@ -462,10 +462,10 @@ export class TeacherFinancialReportPDF {
         cellPadding: 3,
         overflow: 'linebreak',
       },
-      headStyles: { fontStyle: 'bold', textColor: this.colors.sub as any },
-      tableLineColor: this.colors.rule as any,
+      headStyles: { fontStyle: 'bold', textColor: this.colors.sub },
+      tableLineColor: this.colors.rule,
       tableLineWidth: 0.2,
-      bodyStyles: { textColor: this.colors.light as any },
+      bodyStyles: { textColor: this.colors.light },
       columnStyles: {
         0: { cellWidth: availableWidth * 0.15, halign: 'center' }, // 15% for Date
         1: { cellWidth: availableWidth * 0.15, halign: 'center' }, // 15% for Type
@@ -483,7 +483,7 @@ export class TeacherFinancialReportPDF {
           cellWidth: availableWidth * 0.185,
           halign: 'right',
           fontStyle: 'bold',
-          textColor: this.colors.ink as any,
+          textColor: this.colors.ink,
         }, // 17.5% for Balance
       },
       margin: { left: this.margin, right: this.margin },

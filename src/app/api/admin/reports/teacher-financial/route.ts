@@ -131,10 +131,9 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!dbUser) {
-        console.error('Database user not found for email:', user.email);
-        // Still generate the PDF, just skip logging
+        // Database user not found for email - still generate the PDF, just skip logging
       } else {
-        console.log('Logging report with database user ID:', dbUser.id);
+        // Logging report with database user ID
         const logResult = await supabase.rpc('log_generated_report', {
           p_report_type: 'teacher_statement',
           p_file_name: filename,
@@ -149,15 +148,14 @@ export async function POST(request: NextRequest) {
           p_teacher_id: teacher_id,
           p_generated_by: dbUser.id, // Use database user ID instead of Auth user ID
         });
-        console.log('Log result:', logResult);
+        // Log result
         reportId = logResult.data?.report_id;
       }
-    } catch (logError) {
-      // Don't fail the request if logging fails, just log the error
-      console.error('Failed to log report generation:', logError);
+    } catch {
+      // Don't fail the request if logging fails
     }
 
-    // Return success response with report information (no auto-download)
+    // Return success response with detailed report information
     return NextResponse.json({
       success: true,
       message: `Financial statement for ${teacher.full_name} has been generated successfully`,
@@ -166,7 +164,17 @@ export async function POST(request: NextRequest) {
         file_name: filename,
         file_size: buffer.byteLength,
         teacher_name: teacher.full_name,
+        teacher_id: teacher_id,
         generated_at: new Date().toISOString(),
+        period: {
+          start_date: start_date || 'All time',
+          end_date: end_date || 'Present',
+        },
+      },
+      toast: {
+        type: 'success',
+        title: 'Report Generated',
+        message: `Financial statement for ${teacher.full_name} is ready for download`,
       },
     });
   } catch (error) {

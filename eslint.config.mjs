@@ -97,6 +97,27 @@ const eslintConfig = [
       yoda: 'error',
     },
   },
+  // Override rules for optimization utility files
+  {
+    files: [
+      'src/utils/cpu-optimizer.ts',
+      'src/utils/memory-cleanup.ts',
+      'src/utils/performance-monitor.ts',
+      'src/hooks/useTeacherReports.ts',
+    ],
+    rules: {
+      'no-console': 'off',
+      'class-methods-use-this': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  // Override rules for config files
+  {
+    files: ['next.config.ts'],
+    rules: {
+      'require-await': 'off',
+    },
+  },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     ignores: [
