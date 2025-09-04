@@ -84,9 +84,13 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (reportsError) {
-      console.error('Error fetching generated reports:', reportsError);
+      // Error fetching generated reports
       return NextResponse.json(
-        { error: 'Failed to fetch reports' },
+        {
+          error: 'Failed to fetch reports',
+          details: reportsError.message || 'Database connection error',
+          code: 'FETCH_REPORTS_ERROR',
+        },
         { status: 500 }
       );
     }
@@ -103,10 +107,17 @@ export async function GET(request: NextRequest) {
       reports: formattedReports,
       total: formattedReports.length,
     });
-  } catch (error) {
-    console.error('Error in generated reports API:', error);
+  } catch (serverError) {
+    // Internal server error in generated reports API
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details:
+          serverError instanceof Error
+            ? serverError.message
+            : 'Unknown server error',
+        code: 'INTERNAL_SERVER_ERROR',
+      },
       { status: 500 }
     );
   }

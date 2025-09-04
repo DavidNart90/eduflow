@@ -48,6 +48,7 @@
     "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
     "lodash": "^4.17.21",
+    "material": "^0.9.24",
     "multer": "^2.0.2",
     "next": "^15.5.2",
     "node-fetch": "^3.3.2",
@@ -59,6 +60,7 @@
     "react-loading-skeleton": "^3.5.0",
     "react-pdf": "^10.1.0",
     "tailwind-merge": "^3.3.1",
+    "ui": "^0.2.4",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.7"
   },

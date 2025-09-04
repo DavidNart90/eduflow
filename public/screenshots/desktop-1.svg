@@ -1,0 +1,10 @@
+<!-- This is a placeholder for desktop-1.png screenshot -->
+<!-- You should replace this with an actual screenshot of your app -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <rect width="1280" height="720" fill="#f8fafc"/>
+  <rect x="40" y="40" width="1200" height="640" rx="8" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="40" y="40" width="1200" height="60" fill="#1e293b"/>
+  <text x="640" y="75" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="white">Eduflow - Teachers' Savings Association</text>
+  <text x="640" y="400" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" font-weight="500" fill="#64748b">Dashboard Screenshot Placeholder</text>
+  <text x="640" y="440" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#94a3b8">Replace with actual app screenshot</text>
+</svg>

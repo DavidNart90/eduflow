@@ -116,9 +116,13 @@ export async function GET(request: NextRequest) {
     const { data: reports, error: reportsError } = await query;
 
     if (reportsError) {
-      console.error('Error fetching teacher reports:', reportsError);
+      // Error fetching teacher reports
       return NextResponse.json(
-        { error: 'Failed to fetch reports' },
+        {
+          error: 'Failed to fetch reports',
+          details: reportsError.message || 'Database connection error',
+          code: 'FETCH_TEACHER_REPORTS_ERROR',
+        },
         { status: 500 }
       );
     }
@@ -136,11 +140,19 @@ export async function GET(request: NextRequest) {
       reports: formattedReports,
       total: formattedReports.length,
       teacher_id: dbUser.id,
+      message: `Found ${formattedReports.length} report(s) for your account`,
     });
-  } catch (error) {
-    console.error('Error in teacher reports API:', error);
+  } catch (serverError) {
+    // Error in teacher reports API
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details:
+          serverError instanceof Error
+            ? serverError.message
+            : 'Unknown server error',
+        code: 'TEACHER_REPORTS_ERROR',
+      },
       { status: 500 }
     );
   }

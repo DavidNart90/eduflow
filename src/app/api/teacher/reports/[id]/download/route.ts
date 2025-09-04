@@ -104,18 +104,23 @@ export async function POST(
 
     if (report.report_type === 'teacher_statement') {
       // Get the teacher financial report data
-      const params = report.generation_params as any;
+      const params = report.generation_params as {
+        teacher_id?: string;
+        start_date?: string;
+        end_date?: string;
+      };
       const teacherId = params?.teacher_id;
       const startDate = params?.start_date;
       const endDate = params?.end_date;
 
       if (!teacherId || teacherId !== dbUser.id) {
-        console.error('Teacher ID mismatch or missing in report params:', {
-          paramsTeacherId: teacherId,
-          dbUserId: dbUser.id,
-        });
+        // Teacher ID mismatch or missing in report params
         return NextResponse.json(
-          { error: 'Invalid report parameters or access denied' },
+          {
+            error: 'Invalid report parameters or access denied',
+            details: 'You can only access your own reports',
+            code: 'ACCESS_DENIED',
+          },
           { status: 400 }
         );
       }
@@ -131,20 +136,26 @@ export async function POST(
       );
 
       if (dataError) {
-        console.error('RPC error:', dataError);
+        // RPC error during report generation
         return NextResponse.json(
           {
             error: 'Failed to generate report data',
             details: dataError.message,
+            code: 'RPC_GENERATION_ERROR',
           },
           { status: 500 }
         );
       }
 
       if (!reportData) {
-        console.error('No report data returned from RPC');
+        // No report data returned from RPC
         return NextResponse.json(
-          { error: 'No data available for report generation' },
+          {
+            error: 'No data available for report generation',
+            details:
+              'You may not have any transactions in the specified period',
+            code: 'NO_REPORT_DATA',
+          },
           { status: 404 }
         );
       }
@@ -167,8 +178,7 @@ export async function POST(
       .eq('id', id);
 
     if (updateError) {
-      console.error('Failed to update download count:', updateError);
-      // Continue with download even if count update fails
+      // Failed to update download count - continue with download even if count update fails
     }
 
     // Return the PDF
@@ -180,10 +190,17 @@ export async function POST(
         'Content-Length': pdfBuffer.byteLength.toString(),
       },
     });
-  } catch (error) {
-    console.error('Error downloading teacher report:', error);
+  } catch (serverError) {
+    // Error downloading teacher report
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details:
+          serverError instanceof Error
+            ? serverError.message
+            : 'Unknown server error',
+        code: 'TEACHER_DOWNLOAD_ERROR',
+      },
       { status: 500 }
     );
   }

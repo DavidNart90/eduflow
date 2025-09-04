@@ -571,40 +571,70 @@ export default function TeacherDashboard() {
                   {dashboardData?.recent_transactions &&
                   dashboardData.recent_transactions.length > 0 ? (
                     <div className='space-y-3'>
-                      {/* Enhanced Table Header */}
-                      <div className='grid grid-cols-4 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider'>
+                      {/* Enhanced Table Header - Hidden on mobile, use card layout instead */}
+                      <div className='hidden md:grid grid-cols-4 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider'>
                         <div>Date</div>
                         <div>Amount</div>
                         <div>Source</div>
                         <div>Status</div>
                       </div>
 
-                      {/* Enhanced Table Rows */}
+                      {/* Enhanced Table Rows - Responsive layout */}
                       <div className='space-y-2'>
                         {dashboardData.recent_transactions
                           .slice(0, 5)
                           .map(transaction => (
                             <div
                               key={transaction.id}
-                              className='grid grid-cols-4 gap-4 px-4 py-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                              className='px-4 py-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
                             >
-                              <div className='text-sm text-slate-900 dark:text-white font-medium'>
-                                {new Date(
-                                  transaction.transaction_date
-                                ).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}
+                              {/* Desktop Layout */}
+                              <div className='hidden md:grid grid-cols-4 gap-4'>
+                                <div className='text-sm text-slate-900 dark:text-white font-medium'>
+                                  {new Date(
+                                    transaction.transaction_date
+                                  ).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </div>
+                                <div className='text-sm font-semibold text-green-600 dark:text-green-400'>
+                                  +{formatCurrency(transaction.amount)}
+                                </div>
+                                <div>
+                                  {getTransactionTypeBadge(
+                                    transaction.transaction_type
+                                  )}
+                                </div>
+                                <div>{getStatusBadge(transaction.status)}</div>
                               </div>
-                              <div className='text-sm font-semibold text-green-600 dark:text-green-400'>
-                                +{formatCurrency(transaction.amount)}
+
+                              {/* Mobile Layout */}
+                              <div className='md:hidden space-y-2'>
+                                <div className='flex justify-between items-start'>
+                                  <div>
+                                    <div className='text-sm font-medium text-slate-900 dark:text-white'>
+                                      {new Date(
+                                        transaction.transaction_date
+                                      ).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })}
+                                    </div>
+                                    <div className='text-lg font-semibold text-green-600 dark:text-green-400'>
+                                      +{formatCurrency(transaction.amount)}
+                                    </div>
+                                  </div>
+                                  <div className='text-right space-y-1'>
+                                    {getTransactionTypeBadge(
+                                      transaction.transaction_type
+                                    )}
+                                    <div>
+                                      {getStatusBadge(transaction.status)}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                {getTransactionTypeBadge(
-                                  transaction.transaction_type
-                                )}
-                              </div>
-                              <div>{getStatusBadge(transaction.status)}</div>
                             </div>
                           ))}
                       </div>
