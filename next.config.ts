@@ -89,7 +89,7 @@ const nextConfig: NextConfig = {
 
   // Headers for better caching
   async headers() {
-    return [
+    const headersConfig = [
       {
         source: '/(.*)',
         headers: [
@@ -112,6 +112,8 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+
+    return Promise.resolve(headersConfig);
   },
 };
 
