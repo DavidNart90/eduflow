@@ -101,9 +101,9 @@ const eslintConfig = [
   {
     files: [
       'src/utils/cpu-optimizer.ts',
-      'src/utils/memory-cleanup.ts', 
+      'src/utils/memory-cleanup.ts',
       'src/utils/performance-monitor.ts',
-      'src/hooks/useTeacherReports.ts'
+      'src/hooks/useTeacherReports.ts',
     ],
     rules: {
       'no-console': 'off',
