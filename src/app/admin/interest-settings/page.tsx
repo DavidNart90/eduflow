@@ -6,7 +6,6 @@ import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Badge, Input } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
-import { useAuth } from '@/lib/auth-context-optimized';
 import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase';
 import {
@@ -33,7 +32,6 @@ interface InterestSetting {
 
 export default function InterestSettingsPage() {
   const router = useRouter();
-  const { validateSession } = useAuth();
   const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,9 +61,12 @@ export default function InterestSettingsPage() {
       fetchingRef.current = true;
       setIsLoading(true);
 
-      // Validate session before making API call
-      const isSessionValid = await validateSession();
-      if (!isSessionValid) {
+      // Get current session
+      const {
+        data: { session: authSession },
+      } = await supabase.auth.getSession();
+
+      if (!authSession?.access_token) {
         showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
@@ -121,7 +122,7 @@ export default function InterestSettingsPage() {
         setIsLoading(false);
       }
     }
-  }, [validateSession, showError]); // Include dependencies
+  }, [showError]); // Include dependencies
 
   useEffect(() => {
     // Set mounted to true and fetch settings once on mount
@@ -151,9 +152,12 @@ export default function InterestSettingsPage() {
         return;
       }
 
-      // Validate session before making API call
-      const isSessionValid = await validateSession();
-      if (!isSessionValid) {
+      // Get current session for submit
+      const {
+        data: { session: submitSession },
+      } = await supabase.auth.getSession();
+
+      if (!submitSession?.access_token) {
         showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
@@ -174,7 +178,7 @@ export default function InterestSettingsPage() {
       const response = await fetch('/api/admin/interest-settings', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${currentSession.access_token}`,
+          Authorization: `Bearer ${submitSession.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

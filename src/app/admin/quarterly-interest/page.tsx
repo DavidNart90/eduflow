@@ -6,7 +6,6 @@ import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Badge } from '@/components/ui';
 import { MuiSkeletonComponent } from '@/components/ui/Skeleton';
-import { useAuth } from '@/lib/auth-context-optimized';
 import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase';
 import {
@@ -67,7 +66,6 @@ interface PaymentHistoryItem {
 
 export default function QuarterlyInterestPage() {
   const router = useRouter();
-  const { validateSession } = useAuth();
   const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -96,9 +94,11 @@ export default function QuarterlyInterestPage() {
       fetchingRef.current = true;
       setIsLoading(true);
 
-      // Validate session before making API call
-      const isSessionValid = await validateSession();
-      if (!isSessionValid) {
+      // Get current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
         showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
@@ -147,7 +147,7 @@ export default function QuarterlyInterestPage() {
         setIsLoading(false);
       }
     }
-  }, [validateSession, showError]); // Include dependencies
+  }, [showError]); // Include dependencies
 
   useEffect(() => {
     // Set mounted to true and fetch data once on mount
@@ -165,9 +165,11 @@ export default function QuarterlyInterestPage() {
     try {
       setIsCalculating(true);
 
-      // Validate session before making API call
-      const isSessionValid = await validateSession();
-      if (!isSessionValid) {
+      // Get current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
         showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }
@@ -226,9 +228,11 @@ export default function QuarterlyInterestPage() {
     try {
       setIsExecuting(true);
 
-      // Validate session before making API call
-      const isSessionValid = await validateSession();
-      if (!isSessionValid) {
+      // Get current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
         showError('Session Expired', 'Please refresh the page or log in again');
         return;
       }

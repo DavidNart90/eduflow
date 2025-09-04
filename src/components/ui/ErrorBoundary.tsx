@@ -40,9 +40,28 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
+    // Handle specific error types
+    const isChunkLoadError =
+      error.name === 'ChunkLoadError' ||
+      error.message.includes('Loading chunk') ||
+      error.message.includes('failed to fetch') ||
+      error.message.includes('_next/static/chunks');
+
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      // Error logged for development debugging
+      // Error logged for development - Chunk load error detected
+      if (isChunkLoadError) {
+        // ChunkLoadError detected - likely due to navigation during build changes
+      }
+    }
+
+    // Auto-reload for chunk loading errors (common during development)
+    if (isChunkLoadError && process.env.NODE_ENV === 'development') {
+      // Auto-reloading page due to chunk load error
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      return;
     }
 
     // Call custom error handler if provided

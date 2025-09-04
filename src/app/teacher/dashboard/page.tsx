@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { useTeacherData } from '@/hooks/useTeacherData';
@@ -24,8 +24,10 @@ export default function TeacherDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Use the optimized hook for data fetching
-  const { dashboardData, dataSource, apiStatus, loading } = useTeacherData();
+  // Use the optimized hook for data fetching with extended loading time
+  const { dashboardData, dataSource, apiStatus, loading } = useTeacherData({
+    minLoadingTime: 5000, // Wait 5 seconds for real data before showing demo
+  });
 
   // Use the teacher reports hook
   const { reports, downloadReport } = useTeacherReports();
@@ -99,18 +101,15 @@ export default function TeacherDashboard() {
     );
   };
 
-  if (
-    loading ||
-    apiStatus === 'loading' ||
-    (user && !dashboardData && apiStatus === 'idle')
-  ) {
+  // Simplified loading condition
+  if (loading || apiStatus === 'loading') {
     return (
       <TeacherRoute>
         <Layout>
           <div className='p-4 md:p-6 min-h-screen'>
             {/* Loading State */}
             <div className='space-y-8'>
-              {/* Header Skeleton */}
+              {/* Enhanced Loading Header */}
               <div className='mb-6 md:mb-8'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                   <div>
@@ -118,6 +117,35 @@ export default function TeacherDashboard() {
                     <div className='h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-60 animate-pulse'></div>
                   </div>
                   <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse'></div>
+                </div>
+
+                {/* Loading Progress Indicator */}
+                <div className='mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='w-6 h-6 bg-blue-500 rounded-full animate-spin flex items-center justify-center'>
+                      <div className='w-2 h-2 bg-white rounded-full'></div>
+                    </div>
+                    <div>
+                      <h4 className='text-sm font-medium text-blue-800 dark:text-blue-200'>
+                        Loading your data...
+                      </h4>
+                      <p className='text-sm text-blue-700 dark:text-blue-300'>
+                        Please wait while we fetch your latest information from
+                        the server.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Progress bar animation */}
+                  <div className='mt-3 w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2'>
+                    <div
+                      className='bg-blue-600 h-2 rounded-full animate-pulse'
+                      style={{
+                        width: '60%',
+                        animation: 'loading-progress 3s ease-in-out infinite',
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </div>
 

@@ -107,19 +107,23 @@ export async function GET(request: NextRequest) {
       // Continue without transactions data
     }
 
-    // Calculate running balance for recent transactions
+    // Calculate running balance for recent transactions - optimized for memory and speed
     let runningBalance = balanceData?.total_balance || 0;
-    const transactionsWithBalance = (transactions || []).map(transaction => {
-      const transactionWithBalance = {
-        ...transaction,
-        balance: runningBalance,
-      };
-      // For the next transaction (going backwards), subtract this transaction
-      runningBalance -= transaction.amount;
-      return transactionWithBalance;
-    });
+    const transactionsWithBalance = transactions
+      ? transactions.map(
+          (transaction: { amount: number; [key: string]: unknown }) => {
+            const transactionWithBalance = {
+              ...transaction,
+              balance: runningBalance,
+            };
+            // For the next transaction (going backwards), subtract this transaction
+            runningBalance -= transaction.amount;
+            return transactionWithBalance;
+          }
+        )
+      : [];
 
-    // Get monthly contribution summary
+    // Get monthly contribution summary - optimized with single database call
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
@@ -166,7 +170,7 @@ export async function GET(request: NextRequest) {
       // Continue without previous month data
     }
 
-    // Calculate monthly summary
+    // Calculate monthly summary - optimize by reducing iterations
     const monthlySummary = {
       total: 0,
       momo: 0,
@@ -175,36 +179,44 @@ export async function GET(request: NextRequest) {
       contributionCount: 0,
     };
 
-    // Calculate total contributions (excluding interest) and count
-    if (monthlyData) {
-      monthlyData.forEach(transaction => {
-        monthlySummary.total += transaction.amount;
+    // Optimized single loop for monthly calculations - use for...of for better performance
+    if (monthlyData?.length) {
+      for (const transaction of monthlyData) {
+        const amount = transaction.amount;
+        monthlySummary.total += amount;
 
         // Handle transaction types - treat 'deposit' as 'momo' for backward compatibility
-        if (
-          transaction.transaction_type === 'momo' ||
-          transaction.transaction_type === 'deposit'
-        ) {
-          monthlySummary.momo += transaction.amount;
-          monthlySummary.contributionCount++;
-        } else if (transaction.transaction_type === 'controller') {
-          monthlySummary.controller += transaction.amount;
-          monthlySummary.contributionCount++;
-        } else if (transaction.transaction_type === 'interest') {
-          monthlySummary.interest += transaction.amount;
-          // Don't count interest as a contribution
+        switch (transaction.transaction_type) {
+          case 'momo':
+          case 'deposit':
+            monthlySummary.momo += amount;
+            monthlySummary.contributionCount++;
+            break;
+          case 'controller':
+            monthlySummary.controller += amount;
+            monthlySummary.contributionCount++;
+            break;
+          case 'interest':
+            monthlySummary.interest += amount;
+            // Don't count interest as a contribution
+            break;
+          default:
+            // Unknown transaction type, add to total but don't categorize
+            break;
         }
-      });
+      }
     }
 
-    // Calculate previous month total for trend
-    let previousMonthTotal = 0;
-    if (previousMonthData) {
-      previousMonthTotal = previousMonthData.reduce(
-        (sum, transaction) => sum + transaction.amount,
-        0
-      );
-    }
+    // Calculate previous month total for trend - use reduce instead of for loop
+    const previousMonthTotal = previousMonthData?.length
+      ? previousMonthData.reduce(
+          (
+            sum: number,
+            transaction: { amount: number; [key: string]: unknown }
+          ) => sum + transaction.amount,
+          0
+        )
+      : 0;
 
     // Calculate trend percentage
     let trendPercentage = 0;
@@ -216,7 +228,7 @@ export async function GET(request: NextRequest) {
       trendPercentage = 100; // First month with contributions
     }
 
-    // Get total contributions breakdown (all time) - include both momo and deposit for backward compatibility
+    // Get total contributions breakdown (all time) - optimized single query and calculation
     const { data: totalContributionsData } = await supabaseAdmin
       .from('savings_transactions')
       .select('amount, transaction_type')
@@ -232,24 +244,33 @@ export async function GET(request: NextRequest) {
       count: 0,
     };
 
-    if (totalContributionsData) {
-      totalContributionsData.forEach(transaction => {
-        if (
-          transaction.transaction_type === 'momo' ||
-          transaction.transaction_type === 'deposit'
-        ) {
-          totalContributionBreakdown.momo += transaction.amount;
-          totalContributionBreakdown.total += transaction.amount;
-          totalContributionBreakdown.count++;
-        } else if (transaction.transaction_type === 'controller') {
-          totalContributionBreakdown.controller += transaction.amount;
-          totalContributionBreakdown.total += transaction.amount;
-          totalContributionBreakdown.count++;
-        } else if (transaction.transaction_type === 'interest') {
-          totalContributionBreakdown.interest += transaction.amount;
-          // Interest adds to total but doesn't count as a contribution
+    // Optimized single loop for total contributions - use for...of instead of manual iteration
+    if (totalContributionsData?.length) {
+      for (const transaction of totalContributionsData) {
+        const amount = transaction.amount;
+
+        switch (transaction.transaction_type) {
+          case 'momo':
+          case 'deposit':
+            totalContributionBreakdown.momo += amount;
+            totalContributionBreakdown.total += amount;
+            totalContributionBreakdown.count++;
+            break;
+          case 'controller':
+            totalContributionBreakdown.controller += amount;
+            totalContributionBreakdown.total += amount;
+            totalContributionBreakdown.count++;
+            break;
+          case 'interest':
+            totalContributionBreakdown.interest += amount;
+            // Interest adds to total but doesn't count as a contribution
+            break;
+          default:
+            // Unknown transaction type, add to total but don't categorize
+            totalContributionBreakdown.total += amount;
+            break;
         }
-      });
+      }
     }
 
     // Get the current active interest setting

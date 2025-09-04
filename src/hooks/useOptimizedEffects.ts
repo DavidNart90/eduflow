@@ -49,13 +49,37 @@ export function useApiCall<T>(
   );
 
   const executeApiCall = useCallback(async () => {
+    // Check if component is still mounted
+    if (!hasFetchedRef.current && !abortControllerRef.current) {
+      return;
+    }
+
     try {
       const result = await memoizedApiCall();
-      memoizedOnSuccess(result);
-      retryCountRef.current = 0; // Reset retry count on success
+
+      // Additional check to ensure component is still mounted
+      if (
+        abortControllerRef.current &&
+        !abortControllerRef.current.signal.aborted
+      ) {
+        memoizedOnSuccess(result);
+        retryCountRef.current = 0; // Reset retry count on success
+      } else {
+        // Component unmounted or aborted, skip success callback silently
+      }
     } catch (error) {
+      // Only show error for non-abort errors
       if (error instanceof Error && error.name === 'AbortError') {
-        return; // Ignore aborted requests
+        return; // Ignore aborted requests silently
+      }
+
+      // Additional check to ensure component is still mounted
+      if (
+        !abortControllerRef.current ||
+        abortControllerRef.current.signal.aborted
+      ) {
+        // Component unmounted or aborted, skip error handling silently
+        return;
       }
 
       // Check if it's an auth error and we can retry with token refresh
@@ -74,23 +98,45 @@ export function useApiCall<T>(
           // Attempt to refresh tokens
           const validationResult = await validateAndRefreshTokens();
 
-          if (validationResult.isValid) {
+          if (
+            validationResult.isValid &&
+            abortControllerRef.current &&
+            !abortControllerRef.current.signal.aborted
+          ) {
             retryCountRef.current++;
             // Retry the API call with refreshed token
-            setTimeout(() => executeApiCall(), 100);
+            setTimeout(() => {
+              if (
+                abortControllerRef.current &&
+                !abortControllerRef.current.signal.aborted
+              ) {
+                executeApiCall();
+              }
+            }, 100);
             return;
           }
         } catch {
-          // Token refresh failed - will use regular error handling
+          // Token refresh failed - will use regular error handling silently
           if (process.env.NODE_ENV === 'development') {
-            // Only log in development
+            // Only log errors in development, no toast notifications
+            // eslint-disable-next-line no-console
+            console.warn('Token refresh failed');
           }
         }
       }
 
-      memoizedOnError(
-        error instanceof Error ? error : new Error('Unknown error')
-      );
+      // Only call error handler if component is still mounted
+      if (
+        abortControllerRef.current &&
+        !abortControllerRef.current.signal.aborted
+      ) {
+        // Call error handler silently
+        memoizedOnError(
+          error instanceof Error ? error : new Error('Unknown error')
+        );
+      } else {
+        // Skip error handler - component unmounted (silent)
+      }
     }
   }, [
     memoizedApiCall,
@@ -101,6 +147,8 @@ export function useApiCall<T>(
   ]);
 
   useEffect(() => {
+    // Check if dependencies have changed (removed debug logging)
+
     // Check if dependencies have changed
     const depsChanged = dependencies.some(
       (dep, index) => dep !== lastDepsRef.current[index]
@@ -214,7 +262,7 @@ export function useStableCallback<T extends (...args: unknown[]) => unknown>(
 }
 
 /**
- * Hook for session health monitoring
+ * Hook for session health monitoring - Enhanced to prevent memory leaks
  * Validates tokens periodically and handles refresh automatically
  */
 export function useSessionHealthMonitor(
@@ -223,12 +271,13 @@ export function useSessionHealthMonitor(
 ) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef(true);
+  const isMountedRef = useRef(true);
 
   const startMonitoring = useCallback(() => {
-    if (intervalRef.current) return;
+    if (intervalRef.current || !isMountedRef.current) return;
 
     intervalRef.current = setInterval(async () => {
-      if (isActiveRef.current) {
+      if (isActiveRef.current && isMountedRef.current) {
         try {
           await validateSession();
         } catch {
@@ -249,12 +298,28 @@ export function useSessionHealthMonitor(
   }, []);
 
   useEffect(() => {
-    startMonitoring();
+    if (isMountedRef.current) {
+      startMonitoring();
+    }
+
     return () => {
+      isMountedRef.current = false;
       stopMonitoring();
       isActiveRef.current = false;
     };
   }, [startMonitoring, stopMonitoring]);
+
+  // Additional cleanup to ensure no memory leaks
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      isActiveRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   return { startMonitoring, stopMonitoring };
 }

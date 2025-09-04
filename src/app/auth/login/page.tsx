@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';

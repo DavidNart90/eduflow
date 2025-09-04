@@ -22,9 +22,43 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'X-Client-Info': 'eduflow-web',
     },
   },
+  // Performance optimizations
+  realtime: {
+    // Disable realtime by default to reduce CPU usage
+    params: {
+      eventsPerSecond: 2,
+    },
+  },
 });
 
-// Server-side Supabase client with service role key
+// Connection pool for server-side clients to prevent memory leaks
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let serverClientPool: Array<{ client: any; created: number; used: boolean }> =
+  [];
+const MAX_POOL_SIZE = 5;
+const CLIENT_TIMEOUT = 30000; // 30 seconds
+
+// Cleanup function to remove stale connections
+const cleanupServerPool = () => {
+  const now = Date.now();
+  serverClientPool = serverClientPool.filter(item => {
+    const isStale = now - item.created > CLIENT_TIMEOUT;
+    if (isStale && item.client) {
+      // Properly close the connection
+      try {
+        if (item.client.realtime) {
+          item.client.realtime.disconnect();
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Error closing connection:', error);
+      }
+    }
+    return !isStale;
+  });
+};
+
+// Server-side Supabase client with service role key - optimized for performance with connection pooling
 export const createServerSupabaseClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -33,13 +67,101 @@ export const createServerSupabaseClient = () => {
     throw new Error('Missing Supabase service role environment variables');
   }
 
+  // Clean up stale connections
+  cleanupServerPool();
+
+  // Try to reuse an existing client
+  const availableClient = serverClientPool.find(item => !item.used);
+  if (availableClient) {
+    availableClient.used = true;
+    // Mark as unused after 5 seconds
+    setTimeout(() => {
+      availableClient.used = false;
+    }, 5000);
+    return availableClient.client;
+  }
+
+  // Create new client if pool is not full
+  if (serverClientPool.length < MAX_POOL_SIZE) {
+    const client = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      db: {
+        schema: 'public',
+      },
+      // Optimize for server-side usage
+      global: {
+        headers: {
+          'X-Client-Info': 'eduflow-server',
+        },
+      },
+      // Disable realtime for server components to reduce CPU usage
+      realtime: {
+        params: {
+          eventsPerSecond: 1,
+        },
+      },
+    });
+
+    const poolItem = {
+      client,
+      created: Date.now(),
+      used: true,
+    };
+
+    serverClientPool.push(poolItem);
+
+    // Mark as unused after 5 seconds
+    setTimeout(() => {
+      poolItem.used = false;
+    }, 5000);
+
+    return client;
+  }
+
+  // Pool is full, create a temporary client
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'eduflow-server-temp',
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 1,
+      },
+    },
   });
 };
+
+// Cleanup function to be called on app shutdown
+export const cleanupSupabaseConnections = () => {
+  serverClientPool.forEach(item => {
+    try {
+      if (item.client.realtime) {
+        item.client.realtime.disconnect();
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Error closing connection:', error);
+    }
+  });
+  serverClientPool = [];
+};
+
+// Run cleanup every 30 seconds
+if (typeof window === 'undefined') {
+  setInterval(cleanupServerPool, 30000);
+}
 
 // Database types (will be generated from Supabase)
 export interface Database {

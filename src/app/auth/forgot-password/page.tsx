@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
-import { Button } from '@/components/ui';
-import { Input } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import { useAuth } from '@/lib/auth-context';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function ForgotPasswordPage() {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useApiCall } from './useOptimizedEffects';
 
 export interface AdminDashboardData {
@@ -87,7 +87,7 @@ interface AdminDataHook extends AdminDataState {
 const CACHE_DURATION = 2 * 60 * 1000;
 
 export function useAdminData(): AdminDataHook {
-  const { user, loading: authLoading, validateSession } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<AdminDataState>({
     dashboardData: null,
     isLoading: true,
@@ -106,7 +106,7 @@ export function useAdminData(): AdminDataHook {
     if (!authLoading && user) {
       const timer = setTimeout(() => {
         setInitializationDelay(false);
-      }, 2000); // 500ms delay to ensure auth is fully settled
+      }, 1000); // Reduced from 2000ms to 1000ms for faster loading
 
       return () => clearTimeout(timer);
     }
@@ -121,41 +121,39 @@ export function useAdminData(): AdminDataHook {
   }, []);
 
   // Admin dashboard API call function
-  const adminApiCall = useCallback(async () => {
-    // Validate session before making API call
-    const isSessionValid = await validateSession();
-    if (!isSessionValid) {
-      throw new Error('Invalid session - please log in again');
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      // Get current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch('/api/admin/dashboard', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch admin dashboard data');
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
     }
-
-    // Get the session token
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession();
-
-    if (!currentSession?.access_token) {
-      throw new Error('No authentication token available');
-    }
-
-    const response = await fetch('/api/admin/dashboard', {
-      headers: {
-        Authorization: `Bearer ${currentSession.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to fetch admin dashboard data');
-    }
-
-    return data;
-  }, [validateSession]);
+  }, []);
 
   // Use the enhanced API call hook
   const { refetch: refetchDashboard } = useApiCall(
-    adminApiCall,
+    fetchDashboardData,
     [user?.id, user?.role], // Simplified dependencies
     {
       enabled: Boolean(
@@ -210,30 +208,78 @@ export function useAdminData(): AdminDataHook {
           );
         }
 
-        // For session errors, keep loading state longer to give auth time to settle
-        if (error.message.includes('Invalid session')) {
-          // Keep loading for session errors - they often resolve quickly
-          setTimeout(() => {
-            if (!hasSuccessfulResponse) {
-              setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: null,
-                dataSource: 'api',
-                lastFetched: Date.now(),
-              }));
-            }
-          }, 2000); // Wait 2 seconds before showing mock data
-        } else {
-          // For other errors, show mock data immediately
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: null,
-            dataSource: 'mock',
-            lastFetched: Date.now(),
-          }));
-        }
+        // Create mock data immediately for better UX
+        const mockData: AdminDashboardData = {
+          user: {
+            id: user?.id || '',
+            full_name: user?.full_name || 'Admin User',
+            email: user?.email || '',
+            role: 'admin',
+          },
+          systemStats: {
+            total_teachers: 25,
+            active_teachers: 23,
+            total_savings: 450000,
+            monthly_contributions: 32500,
+            pending_reports: 2,
+            system_health: 'good' as const,
+            controller_reports_uploaded: 3,
+            emails_sent: 12,
+          },
+          recent_activities: [],
+          totalMoMo: 180000,
+          totalController: 270000,
+          interestPaid: 12500,
+          pendingReports: 2,
+          trends: {
+            teachers: 8.3,
+            totalContributions: 12.5,
+            momoContributions: 15.2,
+            controllerContributions: 9.8,
+          },
+          monthlyBreakdown: {
+            current: {
+              total: 32500,
+              momo: 15000,
+              controller: 17500,
+            },
+            previous: {
+              total: 28900,
+              momo: 13200,
+              controller: 15700,
+            },
+          },
+          recentActivities: [
+            {
+              id: '1',
+              type: 'momo',
+              description: 'Mobile Money payment received from Demo Teacher',
+              amount: 'GHS 500.00 • 2 hours ago',
+              time: '2 hours ago',
+              status: 'Completed',
+              icon: 'CurrencyDollarIcon',
+            },
+            {
+              id: '2',
+              type: 'controller',
+              description: 'Controller report entry for Demo Teacher (EMP001)',
+              amount: 'GHS 750.00 • 1 day ago',
+              time: '1 day ago',
+              status: 'Completed',
+              icon: 'DocumentArrowUpIcon',
+            },
+          ],
+        };
+
+        // Set mock data immediately
+        setState(prev => ({
+          ...prev,
+          dashboardData: mockData,
+          isLoading: false,
+          error: null,
+          dataSource: 'mock',
+          lastFetched: Date.now(),
+        }));
       },
     }
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';

@@ -97,10 +97,15 @@ export async function GET(request: NextRequest) {
 
     // Format the response
     const formattedReports =
-      reports?.map(report => ({
-        ...report,
-        teacher_name: report.teacher?.full_name || null,
-      })) || [];
+      reports?.map(
+        (report: {
+          [key: string]: unknown;
+          teacher?: { full_name?: string };
+        }) => ({
+          ...report,
+          teacher_name: report.teacher?.full_name || null,
+        })
+      ) || [];
 
     return NextResponse.json({
       success: true,
