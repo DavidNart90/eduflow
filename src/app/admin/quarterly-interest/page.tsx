@@ -440,7 +440,7 @@ export default function QuarterlyInterestPage() {
 
                       <p className='text-slate-600 dark:text-slate-400 mb-6 leading-relaxed'>
                         This tool calculates and applies interest to teacher
-                        savings balances based on the Association&apos;s
+                        savings balances based on the Association{'\u2019'}s
                         approved interest formula. Interest is paid{' '}
                         {interestSettings.payment_frequency} based on the
                         current interest rate.

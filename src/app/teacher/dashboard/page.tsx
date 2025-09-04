@@ -199,7 +199,7 @@ export default function TeacherDashboard() {
                   Teacher Dashboard
                 </p>
                 <p className='text-slate-500 dark:text-slate-500 text-xs md:text-sm'>
-                  Here&apos;s your savings overview for{' '}
+                  Here{'\u2019'}s your savings overview for{' '}
                   {dashboardData?.user?.management_unit ||
                     user?.management_unit}
                 </p>
@@ -268,8 +268,8 @@ export default function TeacherDashboard() {
                         No Transaction History
                       </h4>
                       <p className='text-sm text-blue-700 dark:text-blue-300'>
-                        Your account is connected but you haven&apos;t made any
-                        contributions yet. Start saving today!
+                        Your account is connected but you haven{'\u2019'}t made
+                        any contributions yet. Start saving today!
                       </p>
                     </div>
                   </div>
@@ -378,7 +378,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
 
-            {/* This Month's Contribution Card */}
+            {/* This Month{'\u2019'}s Contribution Card */}
             <Card
               variant='glass'
               className='border-white/20 bg-white/80 dark:bg-slate-800/80 hover:shadow-xl'

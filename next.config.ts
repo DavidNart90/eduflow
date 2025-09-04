@@ -71,7 +71,6 @@ const nextConfig: NextConfig = {
     config.externals = config.externals || [];
     if (!isServer) {
       config.externals.push({
-        puppeteer: 'puppeteer',
         sharp: 'sharp',
       });
     }

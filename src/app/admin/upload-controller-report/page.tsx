@@ -401,8 +401,8 @@ export default function UploadControllerReportPage() {
                       Upload Controller Report
                     </p>
                     <p className='text-slate-500 dark:text-slate-500 text-xs md:text-sm lg:text-center'>
-                      Upload monthly deduction reports from the
-                      Controller&apos;s Office
+                      Upload monthly deduction reports from the Controller
+                      {'\u2019'}s Office
                     </p>
                   </div>
                   <Badge
