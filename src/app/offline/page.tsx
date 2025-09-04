@@ -82,13 +82,13 @@ export default function OfflinePage() {
 
         {/* Content */}
         <h1 className='text-2xl font-bold text-gray-900 mb-4'>
-          {isOnline ? 'Back Online!' : "You're Offline"}
+          {isOnline ? 'Back Online!' : "You{'\u2019'}re Offline"}
         </h1>
 
         <p className='text-gray-600 mb-6'>
           {isOnline
             ? 'Your connection has been restored. Redirecting to EduFlow...'
-            : "It looks like you're not connected to the internet. Some features may not be available."}
+            : "It looks like you{'\u2019'}re not connected to the internet. Some features may not be available."}
         </p>
 
         {/* Online indicator */}
@@ -169,7 +169,8 @@ export default function OfflinePage() {
         {/* EduFlow branding */}
         <div className='mt-6 pt-6 border-t border-gray-200'>
           <p className='text-xs text-gray-500'>
-            EduFlow - Teachers&apos; Portal
+            {' '}
+            EduFlow - Teachers{'\u2019'} Portal
           </p>
         </div>
       </div>

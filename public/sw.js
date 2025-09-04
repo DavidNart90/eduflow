@@ -118,31 +118,47 @@ function isStaticAsset(url) {
   return staticExtensions.some(ext => url.pathname.endsWith(ext));
 }
 
-// Handle API requests with network-first strategy
+// Handle API requests with network-first strategy (with performance optimization)
 async function handleApiRequest(request) {
+  // Skip caching for POST/PUT/DELETE requests
+  if (request.method !== 'GET') {
+    try {
+      return await fetch(request);
+    } catch {
+      return new Response(
+        JSON.stringify({
+          error: 'Offline',
+          message: 'This feature requires an internet connection',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  }
+
   const cache = await caches.open(API_CACHE);
 
   try {
-    // Try network first
-    const networkResponse = await fetch(request);
+    // Try network first with timeout
+    const networkResponse = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Network timeout')), 5000)
+      ),
+    ]);
 
     if (networkResponse.ok) {
-      // Cache successful responses
+      // Only cache successful GET responses
       const responseClone = networkResponse.clone();
-
-      // Only cache GET requests and successful responses
-      if (request.method === 'GET') {
-        await cache.put(request, responseClone);
-      }
-
+      await cache.put(request, responseClone);
       return networkResponse;
     }
 
     throw new Error('Network response not ok');
   } catch {
     // Network failed for API request, trying cache
-
-    // Fallback to cache
     const cachedResponse = await cache.match(request);
     if (cachedResponse) {
       return cachedResponse;

@@ -58,7 +58,7 @@ interface UseTeacherDataOptions {
 }
 
 export function useTeacherData(options: UseTeacherDataOptions = {}) {
-  const { enableAutoRefresh = false, refreshInterval = 30000 } = options;
+  const { enableAutoRefresh = false, refreshInterval = 60000 } = options; // Increase default interval
   const { user, validateSession } = useAuth();
   const { loading, setBalance, setTransactions, setLoading, setError } =
     useTeacherStore();

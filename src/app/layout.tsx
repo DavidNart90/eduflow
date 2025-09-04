@@ -24,9 +24,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Eduflow - Teachers' Savings Association",
+  title: 'Eduflow - Teachers\u2019 Savings Association',
   description:
-    "Progressive Web App for the New Juaben Teachers' Savings Association",
+    'Progressive Web App for the New Juaben Teachers\u2019 Savings Association',
   icons: {
     icon: '/favicon.svg',
     apple: '/icons/apple-touch-icon.png',

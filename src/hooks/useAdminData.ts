@@ -156,7 +156,7 @@ export function useAdminData(): AdminDataHook {
   // Use the enhanced API call hook
   const { refetch: refetchDashboard } = useApiCall(
     adminApiCall,
-    [user?.id, authLoading, initializationDelay], // Include initialization delay
+    [user?.id, user?.role], // Simplified dependencies
     {
       enabled: Boolean(
         !authLoading &&
@@ -165,7 +165,7 @@ export function useAdminData(): AdminDataHook {
           user?.role === 'admin'
       ), // Wait for auth to load AND initialization delay
       retryOnTokenRefresh: true,
-      maxRetries: 2, // Reduce retries to prevent multiple error messages
+      maxRetries: 1, // Reduce retries to prevent multiple error messages
       onSuccess: data => {
         const typedData = data as AdminDashboardData;
 

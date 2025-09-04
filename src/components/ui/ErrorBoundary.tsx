@@ -247,7 +247,7 @@ export const ErrorFallback: React.FC<{
             </h2>
 
             <p className='text-gray-600 dark:text-gray-400 mb-6'>
-              We&apos;re sorry, but something went wrong. Our team has been
+              We{'\u2019'}re sorry, but something went wrong. Our team has been
               notified and is working to fix the issue.
             </p>
 

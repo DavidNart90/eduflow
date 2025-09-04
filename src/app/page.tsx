@@ -50,7 +50,7 @@ export default function Home() {
 
         {/* Subtitle */}
         <p className='text-sm text-slate-500 dark:text-slate-500'>
-          Teachers&apos; Savings Association Management System
+          New Juaben Teachers Savings Association Management System
         </p>
       </div>
     </div>

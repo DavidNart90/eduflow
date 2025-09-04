@@ -122,7 +122,7 @@ export default function LoginPage() {
               Eduflow
             </h1>
             <p className='text-sm md:text-lg text-gray-600 dark:text-gray-300'>
-              Teachers&apos; Savings Management
+              Teachers{'\u2019'} Savings Management
             </p>
           </div>
 
@@ -295,7 +295,7 @@ export default function LoginPage() {
             {/* Signup Link */}
             <div className='text-center'>
               <p className='text-sm text-gray-600 dark:text-gray-300'>
-                Don&apos;t have an account?{' '}
+                Don{'\u2019'}t have an account?{' '}
                 <a
                   href='/auth/signup'
                   className='text-primary-600 hover:text-primary-500 font-medium transition-colors'

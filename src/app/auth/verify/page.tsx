@@ -718,7 +718,7 @@ function VerifyForm() {
             {/* Show email if available */}
             {email && (
               <p className='text-sm text-gray-500 mt-4'>
-                We&apos;ll send a new verification email to:{' '}
+                We{'\u2019'}ll send a new verification email to:{' '}
                 <strong>{email}</strong>
               </p>
             )}
@@ -726,8 +726,8 @@ function VerifyForm() {
             {/* Additional help text */}
             <div className='mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
               <p className='text-sm text-blue-800'>
-                <strong>Note:</strong> If you&apos;re still having issues, you
-                can also try:
+                <strong>Note:</strong> If you{'\u2019'}re still having issues,
+                you can also try:
               </p>
               <ul className='text-sm text-blue-700 mt-2 text-left'>
                 <li>• Check your spam/junk folder</li>
