@@ -110,9 +110,15 @@ export function useTeacherReports(): UseTeacherReportsReturn {
 
   // Auto-fetch reports when component mounts or session changes
   useEffect(() => {
-    if (session?.access_token && reports.length === 0) {
+    let isMounted = true;
+
+    if (session?.access_token && reports.length === 0 && isMounted) {
       fetchReports();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [session?.access_token, fetchReports, reports.length]);
 
   return {

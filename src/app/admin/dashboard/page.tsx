@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context-optimized';
 import { useAdminData } from '@/hooks/useAdminData';
+import { useTimer } from '@/hooks/useMemoryOptimizations';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardHeader, CardContent, Button, Badge } from '@/components/ui';
@@ -25,40 +26,19 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { dashboardData, isLoading, error, dataSource, refetch } =
     useAdminData();
+  const { setTimeout } = useTimer();
 
-  // Check if user is actually an admin
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      if (user.role === 'teacher') {
-        window.location.href = '/teacher/dashboard';
-      }
-    }
-  }, [user]);
-
-  // Early return if user is not an admin
-  if (user && user.role !== 'admin') {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
-          <p className='mt-4 text-gray-600 dark:text-gray-400'>
-            Redirecting to appropriate dashboard...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const formatCurrency = (amount: number) => {
+  // Memoize expensive calculations
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
       currency: 'GHS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-  };
+  }, []);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     const variants = {
       Success: 'success',
       Processed: 'primary',
@@ -73,9 +53,9 @@ export default function AdminDashboard() {
         {status}
       </Badge>
     );
-  };
+  }, []);
 
-  const getIconComponent = (iconName: string) => {
+  const getIconComponent = useMemo(() => {
     const icons = {
       DocumentArrowUpIcon,
       UsersIcon,
@@ -83,10 +63,11 @@ export default function AdminDashboard() {
       CurrencyDollarIcon,
       CogIcon,
     };
-    return icons[iconName as keyof typeof icons] || DocumentTextIcon;
-  };
+    return (iconName: string) =>
+      icons[iconName as keyof typeof icons] || DocumentTextIcon;
+  }, []);
 
-  const formatTrend = (percentage: number) => {
+  const formatTrend = useCallback((percentage: number) => {
     if (percentage === 0)
       return {
         text: '0% from last month',
@@ -103,7 +84,35 @@ export default function AdminDashboard() {
         : 'text-red-600 dark:text-red-400',
       arrow: isPositive ? '↗' : '↘',
     };
-  };
+  }, []);
+
+  // Check if user is actually an admin - optimized with useCallback
+  const redirectUser = useCallback(() => {
+    if (user && user.role !== 'admin' && user.role === 'teacher') {
+      // Use setTimeout from our optimized hook to prevent memory leaks
+      setTimeout(() => {
+        window.location.href = '/teacher/dashboard';
+      }, 0);
+    }
+  }, [user, setTimeout]);
+
+  useEffect(() => {
+    redirectUser();
+  }, [redirectUser]);
+
+  // Early return if user is not an admin
+  if (user && user.role !== 'admin') {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
+          <p className='mt-4 text-gray-600 dark:text-gray-400'>
+            Redirecting to appropriate dashboard...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Only show error state for critical errors (not session/loading issues)
   // and only if we're not in a loading state

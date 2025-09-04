@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, subscribeWithSelector } from 'zustand/middleware';
 
 // Types
 export interface User {
@@ -145,128 +145,137 @@ interface AppState {
   clearError: () => void;
 }
 
+// App State Store with optimized performance
 export const useAppStore = create<AppState>()(
-  persist(
-    set => ({
-      user: null,
-      theme: 'light',
-      notifications: [],
-      toasts: [],
-      loading: false,
-      error: null,
+  subscribeWithSelector(
+    persist(
+      (set, get) => ({
+        user: null,
+        theme: 'light',
+        notifications: [],
+        toasts: [],
+        loading: false,
+        error: null,
 
-      setUser: user => set({ user }),
-      setTheme: theme => set({ theme }),
-      addNotification: notification => {
-        const newNotification: Notification = {
-          ...notification,
-          id: Date.now().toString(),
-          timestamp: new Date(),
-          read: false,
-        };
-        set(state => ({
-          notifications: [newNotification, ...state.notifications],
-        }));
-      },
-      removeNotification: id =>
-        set(state => ({
-          notifications: state.notifications.filter(n => n.id !== id),
-        })),
-      markNotificationAsRead: id =>
-        set(state => ({
-          notifications: state.notifications.map(n =>
-            n.id === id ? { ...n, read: true } : n
-          ),
-        })),
+        setUser: user => set({ user }),
+        setTheme: theme => set({ theme }),
 
-      // Toast Actions
-      addToast: toast => {
-        const newToast: Toast = {
-          ...toast,
-          id: Date.now().toString() + Math.random(),
-          duration: toast.duration ?? 5000,
-          closable: toast.closable ?? true,
-        };
-        set(state => ({
-          toasts: [...state.toasts, newToast],
-        }));
-      },
-      removeToast: id =>
-        set(state => ({
-          toasts: state.toasts.filter(t => t.id !== id),
-        })),
-      showSuccess: (title, message) => {
-        const toast: Omit<Toast, 'id'> = {
-          type: 'success',
-          title,
-          message,
-          duration: 5000,
-          closable: true,
-        };
-        set(state => ({
-          toasts: [
-            ...state.toasts,
-            { ...toast, id: Date.now().toString() + Math.random() },
-          ],
-        }));
-      },
-      showError: (title, message) => {
-        const toast: Omit<Toast, 'id'> = {
-          type: 'error',
-          title,
-          message,
-          duration: 7000, // Errors stay a bit longer
-          closable: true,
-        };
-        set(state => ({
-          toasts: [
-            ...state.toasts,
-            { ...toast, id: Date.now().toString() + Math.random() },
-          ],
-        }));
-      },
-      showWarning: (title, message) => {
-        const toast: Omit<Toast, 'id'> = {
-          type: 'warning',
-          title,
-          message,
-          duration: 6000,
-          closable: true,
-        };
-        set(state => ({
-          toasts: [
-            ...state.toasts,
-            { ...toast, id: Date.now().toString() + Math.random() },
-          ],
-        }));
-      },
-      showInfo: (title, message) => {
-        const toast: Omit<Toast, 'id'> = {
-          type: 'info',
-          title,
-          message,
-          duration: 4000,
-          closable: true,
-        };
-        set(state => ({
-          toasts: [
-            ...state.toasts,
-            { ...toast, id: Date.now().toString() + Math.random() },
-          ],
-        }));
-      },
+        // Optimized notification management to prevent array recreation
+        addNotification: notification => {
+          const newNotification: Notification = {
+            ...notification,
+            id: Date.now().toString(),
+            timestamp: new Date(),
+            read: false,
+          };
+          set(state => ({
+            notifications: [
+              newNotification,
+              ...state.notifications.slice(0, 49),
+            ], // Limit to 50
+          }));
+        },
 
-      setLoading: loading => set({ loading }),
-      setError: error => set({ error }),
-      clearError: () => set({ error: null }),
-    }),
-    {
-      name: 'app-storage',
-      partialize: state => ({
-        theme: state.theme,
-        user: state.user,
+        removeNotification: id =>
+          set(state => ({
+            notifications: state.notifications.filter(
+              (n: Notification) => n.id !== id
+            ),
+          })),
+
+        markNotificationAsRead: id =>
+          set(state => ({
+            notifications: state.notifications.map((n: Notification) =>
+              n.id === id ? { ...n, read: true } : n
+            ),
+          })),
+
+        // Optimized toast management with better ID generation
+        addToast: toast => {
+          const newToast: Toast = {
+            ...toast,
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            duration: toast.duration ?? 5000,
+            closable: toast.closable ?? true,
+          };
+          set(state => ({
+            toasts: [...state.toasts.slice(-9), newToast], // Limit to 10 toasts max
+          }));
+        },
+
+        removeToast: id =>
+          set(state => ({
+            toasts: state.toasts.filter((t: Toast) => t.id !== id),
+          })),
+
+        // Batch toast operations for better performance
+        showSuccess: (title: string, message?: string) => {
+          const toast: Omit<Toast, 'id'> = {
+            type: 'success',
+            title,
+            message: message || '',
+            duration: 5000,
+            closable: true,
+          };
+          get().addToast(toast);
+        },
+
+        showError: (title: string, message?: string) => {
+          const toast: Omit<Toast, 'id'> = {
+            type: 'error',
+            title,
+            message: message || '',
+            duration: 7000,
+            closable: true,
+          };
+          get().addToast(toast);
+        },
+
+        showWarning: (title: string, message?: string) => {
+          const toast: Omit<Toast, 'id'> = {
+            type: 'warning',
+            title,
+            message: message || '',
+            duration: 6000,
+            closable: true,
+          };
+          get().addToast(toast);
+        },
+
+        showInfo: (title: string, message?: string) => {
+          const toast: Omit<Toast, 'id'> = {
+            type: 'info',
+            title,
+            message: message || '',
+            duration: 4000,
+            closable: true,
+          };
+          get().addToast(toast);
+        },
+
+        setLoading: loading => set({ loading }),
+        setError: error => set({ error }),
+        clearError: () => set({ error: null }),
       }),
-    }
+      {
+        name: 'app-storage',
+        partialize: state => ({
+          theme: state.theme,
+          user: state.user,
+          // Don't persist notifications and toasts to reduce storage overhead
+        }),
+        version: 1,
+        migrate: (persistedState: unknown, version: number) => {
+          // Handle migration from version 0 to 1
+          if (version === 0) {
+            // If it's an old version, just return the persisted state as-is
+            // or add any necessary transformations
+            return persistedState as Partial<AppState>;
+          }
+          return persistedState as Partial<AppState>;
+        },
+      }
+    )
   )
 );
 

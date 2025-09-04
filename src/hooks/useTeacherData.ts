@@ -216,17 +216,37 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
     }
   }, [user?.id, apiStatus, setLoading]);
 
-  // Setup auto-refresh if enabled
+  // Setup auto-refresh if enabled (with CPU optimization)
   useEffect(() => {
     if (enableAutoRefresh && dashboardData && apiStatus === 'success') {
+      // Only refresh when page is visible
+      const handleVisibilityChange = () => {
+        if (document.hidden && refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current);
+          refreshIntervalRef.current = null;
+        } else if (!document.hidden && !refreshIntervalRef.current) {
+          refreshIntervalRef.current = setInterval(() => {
+            refetchDashboard();
+          }, refreshInterval);
+        }
+      };
+
+      // Start the interval
       refreshIntervalRef.current = setInterval(() => {
         refetchDashboard();
       }, refreshInterval);
+
+      // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
 
       return () => {
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current);
         }
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
+        );
       };
     }
     return undefined;
