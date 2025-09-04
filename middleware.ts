@@ -17,7 +17,7 @@ const BYPASS_PATHS = new Set([
 const AUTH_PATHS = new Set(['/auth', '/api/auth']);
 
 // Simple in-memory cache for user sessions (for development - use Redis in production)
-const sessionCache = new Map<string, { user: any; expires: number }>();
+const sessionCache = new Map<string, { user: unknown; expires: number }>();
 const CACHE_DURATION = 60000; // 1 minute
 
 // Rate limiting for auth requests
@@ -51,7 +51,7 @@ function getCachedSession(sessionKey: string) {
   return null;
 }
 
-function setCachedSession(sessionKey: string, user: any) {
+function setCachedSession(sessionKey: string, user: unknown) {
   sessionCache.set(sessionKey, {
     user,
     expires: Date.now() + CACHE_DURATION,
@@ -127,16 +127,18 @@ export async function middleware(request: NextRequest) {
       try {
         const {
           data: { user: authUser },
-        } = (await Promise.race([userPromise, timeoutPromise])) as any;
+        } = (await Promise.race([userPromise, timeoutPromise])) as {
+          data: { user: unknown };
+        };
         user = authUser;
 
         // Cache successful auth
         if (user && sessionKey) {
           setCachedSession(sessionKey, user);
         }
-      } catch (authError) {
+      } catch {
         // On auth timeout or error, continue without user for client-side handling
-        console.warn('Auth error in middleware:', authError);
+        // console.warn('Auth error in middleware:', authError);
       }
     }
 
@@ -160,9 +162,9 @@ export async function middleware(request: NextRequest) {
     );
 
     return supabaseResponse;
-  } catch (error) {
+  } catch {
     // On critical error, let requests through to handle client-side
-    console.error('Critical middleware error:', error);
+    // console.error('Critical middleware error:', error);
 
     // Add error header for debugging
     supabaseResponse.headers.set('X-Middleware-Error', 'true');
