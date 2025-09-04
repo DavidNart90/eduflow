@@ -29,21 +29,29 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  const isAuthPath =
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/api/auth') ||
+    request.nextUrl.pathname === '/';
+
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-'));
+
+  if (!hasSessionCookie) {
+    if (!isAuthPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/auth/login';
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/api/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  if (!user && !isAuthPath) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
     return NextResponse.redirect(url);

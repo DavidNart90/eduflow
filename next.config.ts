@@ -21,31 +21,6 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
-  // Turbopack configuration for development (replaces webpack config)
-  turbo: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-    resolveAlias: {
-      // Handle client-side fallbacks for Supabase
-      crypto: false,
-      stream: false,
-      url: false,
-      zlib: false,
-      http: false,
-      https: false,
-      assert: false,
-      os: false,
-      path: false,
-      fs: false,
-      net: false,
-      tls: false,
-    },
-  },
-
   // Webpack configuration for production builds only
   webpack: (config, { isServer, dev }) => {
     // Only apply webpack config for production builds

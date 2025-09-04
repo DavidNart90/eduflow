@@ -372,10 +372,15 @@ async function processControllerData(
     unmatchedTeachers: [],
   };
 
+  const teacherMap = new Map(
+    teachers.map(t => [t.employee_id.toLowerCase().trim(), t])
+  );
+
   for (const row of reportData) {
     try {
-      // Try to match teacher by name similarity and management unit
-      const matchedTeacher = findMatchingTeacher(row, teachers);
+      const directMatch =
+        row.employeeNo && teacherMap.get(row.employeeNo.toLowerCase().trim());
+      const matchedTeacher = directMatch || findMatchingTeacher(row, teachers);
 
       if (matchedTeacher) {
         // Create transaction for matched teacher
