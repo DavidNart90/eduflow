@@ -21,9 +21,39 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
-  // Enhanced webpack configuration for memory optimization
+  // Turbopack configuration for development (replaces webpack config)
+  turbo: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+    resolveAlias: {
+      // Handle client-side fallbacks for Supabase
+      crypto: false,
+      stream: false,
+      url: false,
+      zlib: false,
+      http: false,
+      https: false,
+      assert: false,
+      os: false,
+      path: false,
+      fs: false,
+      net: false,
+      tls: false,
+    },
+  },
+
+  // Webpack configuration for production builds only
   webpack: (config, { isServer, dev }) => {
-    // Handle Supabase client-side issues
+    // Only apply webpack config for production builds
+    if (dev) {
+      return config;
+    }
+
+    // Handle Supabase client-side issues in production
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -43,29 +73,27 @@ const nextConfig: NextConfig = {
     }
 
     // Memory optimization for production builds
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 5,
-              reuseExistingChunk: true,
-            },
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: 10,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 5,
+            reuseExistingChunk: true,
           },
         },
-      };
-    }
+      },
+    };
 
     // Exclude heavy packages from client bundle unless needed
     config.externals = config.externals || [];

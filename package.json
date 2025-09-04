@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "dev:performance": "cross-env NODE_ENV=development ANALYZE=true next dev --turbopack",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbopack",
+    "dev:performance": "cross-env NODE_ENV=development ANALYZE=true next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,7 +16,7 @@
     "clean:deps": "rm -rf node_modules package-lock.json && npm install",
     "clean:cache": "rm -rf .next out && npm run build",
     "performance:monitor": "node performance-monitor.js",
-    "dev:cpu-optimized": "NODE_OPTIONS=\"--max-old-space-size=2048\" next dev --turbopack"
+    "dev:cpu-optimized": "NODE_OPTIONS=\"--max-old-space-size=2048\" next dev"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
