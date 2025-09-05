@@ -146,6 +146,19 @@ interface AppState {
 }
 
 // App State Store with optimized performance
+// Storage availability check
+const isStorageAvailable = () => {
+  try {
+    if (typeof window === 'undefined') return false;
+    const testKey = '__storage_test__';
+    window.localStorage.setItem(testKey, testKey);
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const useAppStore = create<AppState>()(
   subscribeWithSelector(
     persist(
@@ -265,6 +278,47 @@ export const useAppStore = create<AppState>()(
           // Don't persist notifications and toasts to reduce storage overhead
         }),
         version: 1,
+        storage: {
+          getItem: name => {
+            try {
+              if (!isStorageAvailable()) return null;
+              const str = localStorage.getItem(name);
+              if (!str) return null;
+              return JSON.parse(str);
+            } catch (error) {
+              // Silent failure in production, log only in development
+              if (process.env.NODE_ENV === 'development') {
+                // eslint-disable-next-line no-console
+                console.warn('Storage read error:', error);
+              }
+              return null;
+            }
+          },
+          setItem: (name, value) => {
+            try {
+              if (!isStorageAvailable()) return;
+              localStorage.setItem(name, JSON.stringify(value));
+            } catch (error) {
+              // Silent failure in production, log only in development
+              if (process.env.NODE_ENV === 'development') {
+                // eslint-disable-next-line no-console
+                console.warn('Storage write error:', error);
+              }
+            }
+          },
+          removeItem: name => {
+            try {
+              if (!isStorageAvailable()) return;
+              localStorage.removeItem(name);
+            } catch (error) {
+              // Silent failure in production, log only in development
+              if (process.env.NODE_ENV === 'development') {
+                // eslint-disable-next-line no-console
+                console.warn('Storage remove error:', error);
+              }
+            }
+          },
+        },
         migrate: (persistedState: unknown, version: number) => {
           // Handle migration from version 0 to 1
           if (version === 0) {

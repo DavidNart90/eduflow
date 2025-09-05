@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, createServerSupabaseClient } from '@/lib/supabase';
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 // Fallback function for resending verification emails
 async function fallbackResendVerification(email: string, origin: string) {
   try {
@@ -347,8 +354,8 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Check if email exists in auth.users
-        const existingAuthUser = authUsers.users.find(
-          user => user.email === email
+        const existingAuthUser = (authUsers.users as AuthUser[]).find(
+          (user: AuthUser) => user.email === email
         );
         if (existingAuthUser) {
           return NextResponse.json({
@@ -417,8 +424,8 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Find the user by email
-        const userToConfirm = authUsers.users.find(
-          user => user.email === email
+        const userToConfirm = (authUsers.users as AuthUser[]).find(
+          (user: AuthUser) => user.email === email
         );
         if (!userToConfirm) {
           return NextResponse.json(

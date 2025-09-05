@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useAppStore } from '@/lib/stores';
 import Sidebar from './Sidebar';
 import Header from './Header';

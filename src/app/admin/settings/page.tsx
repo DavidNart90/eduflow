@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Input, Badge } from '@/components/ui';

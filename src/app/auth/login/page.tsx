@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -234,12 +235,12 @@ export default function LoginPage() {
 
               {/* Forgot Password Link */}
               <div className='text-right'>
-                <a
+                <Link
                   href='/auth/forgot-password'
                   className='text-sm text-primary-600 hover:text-primary-500 font-medium transition-colors'
                 >
                   Forgot Password?
-                </a>
+                </Link>
               </div>
 
               {/* Success Message */}
@@ -296,12 +297,12 @@ export default function LoginPage() {
             <div className='text-center'>
               <p className='text-sm text-gray-600 dark:text-gray-300'>
                 Don{'\u2019'}t have an account?{' '}
-                <a
+                <Link
                   href='/auth/signup'
                   className='text-primary-600 hover:text-primary-500 font-medium transition-colors'
                 >
                   Sign up here
-                </a>
+                </Link>
               </p>
             </div>
           </div>

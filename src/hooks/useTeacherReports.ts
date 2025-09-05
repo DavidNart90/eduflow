@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useTeacherStore, GeneratedReport } from '@/lib/stores';
 
 interface UseTeacherReportsReturn {

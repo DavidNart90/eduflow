@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useToast } from '@/hooks/useToast';
 import {
   Card,

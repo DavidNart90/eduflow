@@ -1,6 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '@/lib/supabase';
 
+// Type definitions for better type safety
+interface User {
+  id: string;
+  full_name: string;
+  employee_id: string;
+  created_at: string;
+}
+
+interface TeacherBalance {
+  user_id: string;
+  total_balance: number;
+  total_contributions: number;
+  total_interest: number;
+  last_transaction_date: string;
+}
+
+interface Transaction {
+  id: string;
+  transaction_type:
+    | 'momo'
+    | 'deposit'
+    | 'controller'
+    | 'interest'
+    | 'withdrawal';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  transaction_date: string;
+  created_at: string;
+}
+
+interface RecentActivity extends Transaction {
+  users?: {
+    full_name: string;
+    employee_id: string;
+  };
+}
+
+// Supabase error type
+interface SupabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get the authorization header
@@ -86,7 +131,7 @@ export async function GET(request: NextRequest) {
       { data: totalBalances, error: balancesError },
       { data: allTransactions, error: transactionsError },
       { data: recentActivities, error: activitiesError },
-    ] = await Promise.all([
+    ] = (await Promise.all([
       // Get total teachers count
       supabaseAdmin
         .from('users')
@@ -113,13 +158,19 @@ export async function GET(request: NextRequest) {
         )
         .order('created_at', { ascending: false })
         .limit(10),
-    ]);
+    ])) as [
+      { data: User[] | null; error: SupabaseError | null },
+      { data: TeacherBalance[] | null; error: SupabaseError | null },
+      { data: Transaction[] | null; error: SupabaseError | null },
+      { data: RecentActivity[] | null; error: SupabaseError | null },
+    ];
 
     // Calculate total savings from balances (this is the actual total)
     let totalSavingsAmount = 0;
     if (totalBalances && !balancesError) {
       totalSavingsAmount = totalBalances.reduce(
-        (sum, balance) => sum + (balance.total_balance || 0),
+        (sum: number, balance: TeacherBalance) =>
+          sum + (balance.total_balance || 0),
         0
       );
     }
@@ -130,7 +181,7 @@ export async function GET(request: NextRequest) {
     let totalInterest = 0;
 
     if (allTransactions && !transactionsError) {
-      allTransactions.forEach(transaction => {
+      allTransactions.forEach((transaction: Transaction) => {
         if (
           transaction.transaction_type === 'momo' ||
           transaction.transaction_type === 'deposit'
@@ -203,7 +254,7 @@ export async function GET(request: NextRequest) {
     let currentMonthController = 0;
 
     if (currentMonthContributions && !currentMonthError) {
-      currentMonthContributions.forEach(transaction => {
+      currentMonthContributions.forEach((transaction: Transaction) => {
         currentMonthTotal += transaction.amount;
         if (
           transaction.transaction_type === 'momo' ||
@@ -221,7 +272,7 @@ export async function GET(request: NextRequest) {
     let previousMonthController = 0;
 
     if (previousMonthContributions && !previousMonthError) {
-      previousMonthContributions.forEach(transaction => {
+      previousMonthContributions.forEach((transaction: Transaction) => {
         previousMonthTotal += transaction.amount;
         if (
           transaction.transaction_type === 'momo' ||

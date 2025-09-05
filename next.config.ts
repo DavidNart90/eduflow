@@ -1,18 +1,23 @@
 import type { NextConfig } from 'next';
+import os from 'os';
 
 const nextConfig: NextConfig = {
-  // Experimental optimizations for better performance
+  // Power settings for development
+  poweredByHeader: false,
+
+  // Experimental features
   experimental: {
-    optimizePackageImports: [
-      '@supabase/supabase-js',
-      '@heroicons/react',
-      '@mui/material',
+    // Bundle size optimization
+    esmExternals: 'loose',
+    serverComponentsExternalPackages: [
       '@emotion/react',
       'chart.js',
       'react-chartjs-2',
     ],
     // Enable optimized CSS loading
     optimizeCss: true,
+    // Reduce CPU usage during development
+    cpus: Math.max(1, Math.floor(os.cpus().length / 2)),
   },
 
   // Compiler optimizations
@@ -96,6 +101,10 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: [
           {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+          {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
@@ -114,6 +123,24 @@ const nextConfig: NextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+      // API routes - no cache
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
           },
         ],
       },

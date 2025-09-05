@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
-import { Button } from '@/components/ui';
-import { Input } from '@/components/ui';
+import Link from 'next/link';
+import { Button, Input } from '@/components/ui';
+import { useAuth } from '@/lib/auth-context-simple';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function ForgotPasswordPage() {
@@ -187,12 +187,12 @@ export default function ForgotPasswordPage() {
           <div className='text-center'>
             <p className='text-sm text-gray-500 dark:text-gray-400'>
               Remember your password?{' '}
-              <a
+              <Link
                 href='/auth/login'
                 className='text-primary-600 hover:text-primary-500 font-medium transition-colors'
               >
                 Sign in here
-              </a>
+              </Link>
             </p>
           </div>
         </div>

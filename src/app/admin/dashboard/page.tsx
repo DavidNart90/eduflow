@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useTimer } from '@/hooks/useMemoryOptimizations';
 import { AdminRoute } from '@/components/ProtectedRoute';

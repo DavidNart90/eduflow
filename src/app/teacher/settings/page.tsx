@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { TeacherRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Card, CardContent, Button, Input, Badge } from '@/components/ui';
@@ -47,15 +47,18 @@ export default function TeacherSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Set form data from user context
+  // Set form data from user context - Fixed infinite loop
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+
     const loadUserData = () => {
       try {
         setIsLoading(true);
 
         // Simulate API call for loading user settings
-        setTimeout(() => {
-          if (user) {
+        timeoutId = setTimeout(() => {
+          if (isMounted && user) {
             setFormData({
               fullName: user.full_name || '',
               email: user.email || '',
@@ -69,10 +72,12 @@ export default function TeacherSettingsPage() {
               confirmPassword: '',
             });
           }
-          setIsLoading(false);
-        }, 3000);
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }, 1000); // Reduced timeout to 1 second
       } catch {
-        if (user) {
+        if (isMounted && user) {
           setFormData({
             fullName: user.full_name || '',
             email: user.email || '',
@@ -86,14 +91,34 @@ export default function TeacherSettingsPage() {
             confirmPassword: '',
           });
         }
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (user) {
+    if (user?.id) {
+      // Only run when user.id exists and changes
       loadUserData();
     }
-  }, [user]);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+    // We only want to run this when specific user properties change, not the entire user object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    user?.id,
+    user?.full_name,
+    user?.email,
+    user?.management_unit,
+    user?.employee_id,
+    user?.created_at,
+  ]); // Include all user properties we use
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({

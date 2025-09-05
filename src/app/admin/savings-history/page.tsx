@@ -23,7 +23,7 @@ import {
   ChartBarIcon,
   BanknotesIcon,
 } from '@heroicons/react/24/outline';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { supabase } from '@/lib/supabase';
 
 interface Transaction {

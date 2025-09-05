@@ -129,11 +129,17 @@ export async function GET(request: NextRequest) {
 
     // Format the response
     const formattedReports =
-      reports?.map(report => ({
-        ...report,
-        generated_by_name: report.generated_by_user?.full_name || 'System',
-        generated_by_employee_id: report.generated_by_user?.employee_id || null,
-      })) || [];
+      reports?.map(
+        (report: {
+          [key: string]: unknown;
+          generated_by_user?: { full_name?: string; employee_id?: string };
+        }) => ({
+          ...report,
+          generated_by_name: report.generated_by_user?.full_name || 'System',
+          generated_by_employee_id:
+            report.generated_by_user?.employee_id || null,
+        })
+      ) || [];
 
     return NextResponse.json({
       success: true,

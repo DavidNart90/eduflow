@@ -128,7 +128,7 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
 }
 
 /**
- * Hook to manage event listeners and prevent memory leaks
+ * Hook to manage event listeners and prevent memory leaks - Enhanced with proper cleanup
  */
 export function useEventListener<K extends keyof WindowEventMap>(
   eventType: K,
@@ -137,6 +137,7 @@ export function useEventListener<K extends keyof WindowEventMap>(
   options?: AddEventListenerOptions
 ) {
   const savedHandler = useRef<(event: WindowEventMap[K]) => void>(handler);
+  const elementRef = useRef<Element | Document | Window | null>(null);
 
   useEffect(() => {
     savedHandler.current = handler;
@@ -144,18 +145,38 @@ export function useEventListener<K extends keyof WindowEventMap>(
 
   useEffect(() => {
     const targetElement = element ?? window;
+    elementRef.current = targetElement;
+
     if (!targetElement?.addEventListener) return undefined;
 
     const eventListener = (event: Event) => {
-      savedHandler.current?.(event as WindowEventMap[K]);
+      // Additional safety check
+      if (savedHandler.current) {
+        savedHandler.current(event as WindowEventMap[K]);
+      }
     };
 
     targetElement.addEventListener(eventType, eventListener, options);
 
     return () => {
-      targetElement.removeEventListener(eventType, eventListener, options);
+      // Use stored reference to ensure we remove from the correct element
+      const storedElement = elementRef.current;
+      if (storedElement?.removeEventListener) {
+        storedElement.removeEventListener(eventType, eventListener, options);
+      }
+      elementRef.current = null;
     };
   }, [eventType, element, options]);
+
+  // Additional cleanup on unmount
+  useEffect(() => {
+    return () => {
+      elementRef.current = null;
+      savedHandler.current = () => {
+        // Prevent any lingering calls after unmount
+      };
+    };
+  }, []);
 }
 
 /**

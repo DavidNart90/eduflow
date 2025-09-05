@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -10,24 +10,50 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading) {
-      // Use setTimeout to ensure the redirect happens after the current render cycle
-      setTimeout(() => {
-        if (user) {
-          // Redirect authenticated users to their appropriate dashboard
-          if (user.role === 'teacher') {
-            router.replace('/teacher/dashboard');
-          } else if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-          } else {
-            router.replace('/dashboard');
-          }
+      if (user) {
+        // Redirect authenticated users to their appropriate dashboard immediately
+        if (user.role === 'teacher') {
+          router.replace('/teacher/dashboard');
+        } else if (user.role === 'admin') {
+          router.replace('/admin/dashboard');
         } else {
-          // Redirect unauthenticated users to login page
-          router.replace('/auth/login');
+          router.replace('/dashboard');
         }
-      }, 0);
+      } else {
+        // Redirect unauthenticated users to login page immediately
+        router.replace('/auth/login');
+      }
     }
   }, [user, loading, router]);
+
+  // Early redirect - if we already know the auth state, redirect immediately
+  if (!loading) {
+    if (user) {
+      // For authenticated users, show minimal loading while redirecting
+      return (
+        <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900'>
+          <div className='text-center space-y-4'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto'></div>
+            <p className='text-slate-600 dark:text-slate-400 font-medium'>
+              Redirecting to dashboard...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // For unauthenticated users, show minimal loading while redirecting
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900'>
+        <div className='text-center space-y-4'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto'></div>
+          <p className='text-slate-600 dark:text-slate-400 font-medium'>
+            Redirecting to login...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Show loading spinner while checking authentication
   return (

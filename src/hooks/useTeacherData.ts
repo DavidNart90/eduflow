@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context-optimized';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useTeacherStore } from '@/lib/stores';
-import { supabase } from '@/lib/supabase';
-import { useApiCall } from './useOptimizedEffects';
 
 interface TeacherDashboardData {
   user: {
@@ -55,11 +53,16 @@ interface TeacherDashboardData {
 interface UseTeacherDataOptions {
   enableAutoRefresh?: boolean;
   refreshInterval?: number;
+  minLoadingTime?: number; // Minimum time to wait before showing demo data
 }
 
 export function useTeacherData(options: UseTeacherDataOptions = {}) {
-  const { enableAutoRefresh = false, refreshInterval = 60000 } = options; // Increase default interval
-  const { user, validateSession } = useAuth();
+  const {
+    enableAutoRefresh = false,
+    refreshInterval = 60000,
+    minLoadingTime = 3000,
+  } = options;
+  const { user, session } = useAuth();
   const { loading, setBalance, setTransactions, setLoading, setError } =
     useTeacherStore();
 
@@ -73,26 +76,15 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
   // Use refs to prevent unnecessary re-fetches
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Dashboard API call function
+  // Dashboard API call function - simplified
   const dashboardApiCall = useCallback(async () => {
-    // Validate session before making API call
-    const isSessionValid = await validateSession();
-    if (!isSessionValid) {
-      throw new Error('Invalid session - please log in again');
-    }
-
-    // Get the session token
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession();
-
-    if (!currentSession?.access_token) {
+    if (!session?.access_token) {
       throw new Error('No authentication token available');
     }
 
     const response = await fetch('/api/teacher/dashboard', {
       headers: {
-        Authorization: `Bearer ${currentSession.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -104,42 +96,50 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
     }
 
     return data;
-  }, [validateSession]);
+  }, [session?.access_token]);
 
-  // Use the enhanced API call hook
-  const { refetch: refetchDashboard } = useApiCall(
-    dashboardApiCall,
-    [user?.id], // Dependencies
-    {
-      enabled: Boolean(user?.id),
-      retryOnTokenRefresh: true,
-      maxRetries: 2,
-      onSuccess: data => {
-        const typedData = data as TeacherDashboardData;
-        setDashboardData(typedData);
-        setBalance(typedData.balance || 0);
-        setTransactions(typedData.recent_transactions || []);
-        setApiStatus('success');
-        setLoading(false);
+  // Fetch dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.id || apiStatus === 'loading') {
+      return;
+    }
 
-        // Determine data source based on actual content
-        if (
-          typedData.balance === 0 &&
-          (!typedData.recent_transactions ||
-            typedData.recent_transactions.length === 0)
-        ) {
-          setDataSource('empty');
-        } else {
-          setDataSource('api');
-        }
+    const startTime = Date.now();
+    setApiStatus('loading');
+    setLoading(true);
 
-        setError(null);
-      },
-      onError: error => {
-        // Dashboard API Error - using fallback data
+    try {
+      const data = await dashboardApiCall();
+      const typedData = data as TeacherDashboardData;
+
+      setDashboardData(typedData);
+      setBalance(typedData.balance || 0);
+      setTransactions(typedData.recent_transactions || []);
+      setApiStatus('success');
+      setLoading(false);
+
+      // Determine data source based on actual content
+      if (
+        typedData.balance === 0 &&
+        (!typedData.recent_transactions ||
+          typedData.recent_transactions.length === 0)
+      ) {
+        setDataSource('empty');
+      } else {
+        setDataSource('api');
+      }
+
+      setError(null);
+    } catch (error) {
+      // Calculate elapsed time and wait for minimum loading time if needed
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+      // Wait for minimum loading time before showing demo data
+      setTimeout(() => {
         setApiStatus('error');
         setDataSource('mock');
-        setError(error.message);
+        setError(error instanceof Error ? error.message : 'Unknown error');
         setLoading(false);
 
         // Fallback to mock data
@@ -188,7 +188,7 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
             count: 15,
           },
           interest_setting: {
-            interest_rate: 0.0425, // 4.25%
+            interest_rate: 0.0425,
             payment_frequency: 'quarterly',
           },
         };
@@ -196,66 +196,52 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
         setDashboardData(defaultData);
         setBalance(12450.75);
         setTransactions(defaultData.recent_transactions);
-      },
+      }, remainingTime);
     }
-  );
+  }, [
+    user?.id,
+    user?.full_name,
+    user?.employee_id,
+    user?.management_unit,
+    user?.email,
+    user?.phone_number,
+    apiStatus,
+    dashboardApiCall,
+    setBalance,
+    setTransactions,
+    setLoading,
+    setError,
+    minLoadingTime,
+  ]);
 
-  // Effect to manage loading state when user changes
-  useEffect(() => {
-    if (user?.id) {
-      setLoading(true);
-      setApiStatus('loading');
-    }
-  }, [user?.id, setLoading]);
-
-  // Initial loading state when component mounts
+  // Effect to fetch data when user is available
   useEffect(() => {
     if (user?.id && apiStatus === 'idle') {
-      setLoading(true);
-      setApiStatus('loading');
+      fetchDashboardData();
     }
-  }, [user?.id, apiStatus, setLoading]);
+  }, [user?.id, apiStatus, fetchDashboardData]);
 
-  // Setup auto-refresh if enabled (with CPU optimization)
+  // Setup auto-refresh if enabled (simplified)
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
     if (enableAutoRefresh && dashboardData && apiStatus === 'success') {
-      // Only refresh when page is visible
-      const handleVisibilityChange = () => {
-        if (document.hidden && refreshIntervalRef.current) {
-          clearInterval(refreshIntervalRef.current);
-          refreshIntervalRef.current = null;
-        } else if (!document.hidden && !refreshIntervalRef.current) {
-          refreshIntervalRef.current = setInterval(() => {
-            refetchDashboard();
-          }, refreshInterval);
-        }
-      };
-
-      // Start the interval
-      refreshIntervalRef.current = setInterval(() => {
-        refetchDashboard();
+      intervalId = setInterval(() => {
+        fetchDashboardData();
       }, refreshInterval);
-
-      // Listen for visibility changes
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      return () => {
-        if (refreshIntervalRef.current) {
-          clearInterval(refreshIntervalRef.current);
-        }
-        document.removeEventListener(
-          'visibilitychange',
-          handleVisibilityChange
-        );
-      };
     }
-    return undefined;
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [
     enableAutoRefresh,
     refreshInterval,
     dashboardData,
     apiStatus,
-    refetchDashboard,
+    fetchDashboardData,
   ]);
 
   // Cleanup on unmount
@@ -263,13 +249,14 @@ export function useTeacherData(options: UseTeacherDataOptions = {}) {
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
       }
     };
   }, []);
 
   const refreshData = useCallback(() => {
-    refetchDashboard();
-  }, [refetchDashboard]);
+    setApiStatus('idle'); // Reset to trigger refetch
+  }, []);
 
   return {
     dashboardData,
