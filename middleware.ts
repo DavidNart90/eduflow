@@ -18,7 +18,6 @@ const AUTH_PATHS = new Set(['/auth', '/api/auth']);
 
 const sessionCache = new Map<string, { user: unknown; expires: number }>();
 const CACHE_DURATION = 60000; // 1 minute
-=======
   const isAuthPath =
     request.nextUrl.pathname.startsWith('/auth') ||
     request.nextUrl.pathname.startsWith('/api/auth') ||
