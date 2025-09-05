@@ -1,24 +1,24 @@
 import type { NextConfig } from 'next';
 import os from 'os';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   // Power settings for development
   poweredByHeader: false,
 
+  // Set the output file tracing root to avoid workspace warnings
+  outputFileTracingRoot: path.join(__dirname),
+
   // Experimental features
   experimental: {
-    // Bundle size optimization
-    esmExternals: 'loose',
-    serverComponentsExternalPackages: [
-      '@emotion/react',
-      'chart.js',
-      'react-chartjs-2',
-    ],
     // Enable optimized CSS loading
     optimizeCss: true,
     // Reduce CPU usage during development
     cpus: Math.max(1, Math.floor(os.cpus().length / 2)),
   },
+
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['@emotion/react', 'chart.js', 'react-chartjs-2'],
 
   // Compiler optimizations
   compiler: {

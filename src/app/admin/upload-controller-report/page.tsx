@@ -459,10 +459,10 @@ export default function UploadControllerReportPage() {
                       <div
                         className={`relative border-2 border-dashed rounded-xl p-8 md:p-12 text-center transition-all duration-300 ${
                           dragActive
-                            ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                            ? 'border-primary bg-gradient-to-br from-primary/10 via-blue-500/5 to-purple-500/10 dark:from-primary/20 dark:via-blue-500/10 dark:to-purple-500/20 scale-[1.02] shadow-xl shadow-primary/20'
                             : uploadState.file
-                              ? 'border-green-300 bg-green-50 dark:bg-green-900/20'
-                              : 'border-slate-300 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                              ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 shadow-lg shadow-green-500/20'
+                              : 'border-slate-300 dark:border-slate-600 hover:border-primary hover:bg-gradient-to-br hover:from-slate-50 hover:to-blue-50 dark:hover:from-slate-800/50 dark:hover:to-blue-900/20 hover:shadow-lg hover:shadow-primary/10'
                         }`}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
@@ -478,58 +478,214 @@ export default function UploadControllerReportPage() {
                         />
 
                         {uploadState.uploading ? (
-                          <div className='space-y-4'>
-                            <MuiSkeletonComponent
-                              variant='rectangular'
-                              width={80}
-                              height={80}
-                              animation='pulse'
-                              className='mx-auto rounded-full'
-                            />
-                            <div className='space-y-2'>
-                              <p className='text-slate-600 dark:text-slate-400'>
-                                Uploading... {uploadState.progress}%
-                              </p>
-                              <div className='w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2'>
-                                <div
-                                  className='bg-primary h-2 rounded-full transition-all duration-300'
-                                  style={{ width: `${uploadState.progress}%` }}
+                          <div className='space-y-6'>
+                            {/* Enhanced Circular Progress */}
+                            <div className='relative mx-auto w-20 h-20'>
+                              {/* Background Circle */}
+                              <svg
+                                className='w-20 h-20 transform -rotate-90'
+                                viewBox='0 0 80 80'
+                              >
+                                <circle
+                                  cx='40'
+                                  cy='40'
+                                  r='36'
+                                  stroke='currentColor'
+                                  strokeWidth='8'
+                                  fill='none'
+                                  className='text-slate-200 dark:text-slate-700'
                                 />
+                                {/* Progress Circle with Animation */}
+                                <circle
+                                  cx='40'
+                                  cy='40'
+                                  r='36'
+                                  stroke='url(#gradient)'
+                                  strokeWidth='8'
+                                  fill='none'
+                                  strokeLinecap='round'
+                                  strokeDasharray={`${2 * Math.PI * 36}`}
+                                  strokeDashoffset={`${2 * Math.PI * 36 * (1 - uploadState.progress / 100)}`}
+                                  className='transition-all duration-300 ease-out'
+                                  style={{
+                                    filter:
+                                      'drop-shadow(0 0 6px rgba(59, 130, 246, 0.5))',
+                                  }}
+                                />
+                              </svg>
+                              {/* Progress Text */}
+                              <div className='absolute inset-0 flex items-center justify-center'>
+                                <span className='text-lg font-bold text-primary dark:text-blue-400'>
+                                  {uploadState.progress}%
+                                </span>
+                              </div>
+                              {/* Pulsing Ring Animation */}
+                              <div className='absolute inset-0 rounded-full border-2 border-primary/30 animate-ping'></div>
+
+                              {/* SVG Gradient Definition */}
+                              <svg className='absolute inset-0 w-0 h-0'>
+                                <defs>
+                                  <linearGradient
+                                    id='gradient'
+                                    x1='0%'
+                                    y1='0%'
+                                    x2='100%'
+                                    y2='100%'
+                                  >
+                                    <stop offset='0%' stopColor='#3B82F6' />
+                                    <stop offset='50%' stopColor='#6366F1' />
+                                    <stop offset='100%' stopColor='#8B5CF6' />
+                                  </linearGradient>
+                                </defs>
+                              </svg>
+                            </div>
+
+                            {/* Enhanced Progress Info */}
+                            <div className='space-y-3'>
+                              <div className='flex items-center justify-center space-x-2'>
+                                <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse'></div>
+                                <p className='text-lg font-medium text-slate-700 dark:text-slate-300'>
+                                  Uploading your file...
+                                </p>
+                                <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse animation-delay-150'></div>
+                              </div>
+
+                              {/* Enhanced Progress Bar */}
+                              <div className='w-full'>
+                                <div className='relative w-full bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 rounded-full h-3 overflow-hidden shadow-inner'>
+                                  <div
+                                    className='h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out relative overflow-hidden'
+                                    style={{
+                                      width: `${uploadState.progress}%`,
+                                    }}
+                                  >
+                                    {/* Shimmer Effect */}
+                                    <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer'></div>
+                                  </div>
+                                  {/* Glow Effect */}
+                                  <div
+                                    className='absolute top-0 h-full bg-gradient-to-r from-blue-400/50 to-purple-400/50 rounded-full blur-sm transition-all duration-500 ease-out'
+                                    style={{
+                                      width: `${uploadState.progress}%`,
+                                    }}
+                                  ></div>
+                                </div>
+
+                                {/* Progress Stages */}
+                                <div className='flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400'>
+                                  <span
+                                    className={
+                                      uploadState.progress >= 20
+                                        ? 'text-blue-600 dark:text-blue-400 font-medium'
+                                        : ''
+                                    }
+                                  >
+                                    Processing...
+                                  </span>
+                                  <span
+                                    className={
+                                      uploadState.progress >= 60
+                                        ? 'text-indigo-600 dark:text-indigo-400 font-medium'
+                                        : ''
+                                    }
+                                  >
+                                    Validating...
+                                  </span>
+                                  <span
+                                    className={
+                                      uploadState.progress >= 90
+                                        ? 'text-purple-600 dark:text-purple-400 font-medium'
+                                        : ''
+                                    }
+                                  >
+                                    Finalizing...
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
                         ) : uploadState.file ? (
                           <div className='space-y-4'>
-                            <CheckCircleIcon className='h-16 w-16 text-green-500 mx-auto' />
-                            <div>
-                              <p className='text-lg font-medium text-slate-900 dark:text-white'>
-                                {uploadState.file.name}
-                              </p>
-                              <p className='text-sm text-slate-500 dark:text-slate-400'>
-                                {formatFileSize(uploadState.file.size)}
-                              </p>
+                            {/* Enhanced Success Icon with Animation */}
+                            <div className='relative mx-auto w-16 h-16'>
+                              <CheckCircleIcon className='h-16 w-16 text-green-500 mx-auto animate-bounce' />
+                              {/* Success Ring Animation */}
+                              <div className='absolute inset-0 rounded-full border-2 border-green-400/30 animate-ping'></div>
+                              <div className='absolute inset-2 rounded-full border-2 border-green-300/20 animate-ping animation-delay-300'></div>
                             </div>
+
+                            {/* Enhanced File Info */}
+                            <div className='p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800'>
+                              <p className='text-lg font-semibold text-green-800 dark:text-green-300 mb-1'>
+                                ✓ {uploadState.file.name}
+                              </p>
+                              <div className='text-sm text-green-600 dark:text-green-400 flex items-center justify-center space-x-2'>
+                                <span>
+                                  {formatFileSize(uploadState.file.size)}
+                                </span>
+                                <span>•</span>
+                                <span className='flex items-center'>
+                                  <div className='w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse'></div>
+                                  Ready to upload
+                                </span>
+                              </div>
+                            </div>
+
                             <Button
                               variant='ghost'
                               size='sm'
                               onClick={resetUpload}
-                              className='text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                              className='text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200'
                             >
                               Choose different file
                             </Button>
                           </div>
                         ) : (
-                          <div className='space-y-4'>
-                            <div className='mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-full flex items-center justify-center'>
-                              <CloudArrowUpIcon className='h-8 w-8 text-primary' />
+                          <div className='space-y-6'>
+                            {/* Enhanced Upload Icon with Animation */}
+                            <div className='relative mx-auto w-20 h-20'>
+                              <div className='absolute inset-0 bg-gradient-to-br from-primary/20 via-blue-500/20 to-purple-500/20 rounded-full animate-pulse'></div>
+                              <div className='relative w-20 h-20 bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-full flex items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary/50 transition-all duration-300'>
+                                <CloudArrowUpIcon className='h-10 w-10 text-primary animate-bounce' />
+                              </div>
+                              {/* Floating Particles */}
+                              <div className='absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-ping'></div>
+                              <div className='absolute -bottom-1 -left-1 w-2 h-2 bg-purple-400 rounded-full animate-ping animation-delay-300'></div>
                             </div>
-                            <div>
-                              <p className='text-lg font-medium text-slate-900 dark:text-white mb-2'>
+
+                            {/* Enhanced Text with Gradient */}
+                            <div className='text-center space-y-3'>
+                              <p className='text-xl font-semibold bg-gradient-to-r from-slate-900 via-primary to-slate-900 dark:from-white dark:via-blue-400 dark:to-white bg-clip-text text-transparent'>
                                 Drop files here or click to browse
                               </p>
-                              <p className='text-sm text-slate-500 dark:text-slate-400'>
-                                Supports .csv and .xlsx files up to 10MB
+                              <p className='text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto'>
+                                Supports{' '}
+                                <span className='font-medium text-primary'>
+                                  .csv
+                                </span>{' '}
+                                and{' '}
+                                <span className='font-medium text-primary'>
+                                  .xlsx
+                                </span>{' '}
+                                files up to{' '}
+                                <span className='font-medium'>10MB</span>
                               </p>
+
+                              {/* Upload Tips */}
+                              <div className='flex justify-center space-x-4 mt-4'>
+                                <div className='flex items-center space-x-1 text-xs text-slate-400 dark:text-slate-500'>
+                                  <div className='w-1.5 h-1.5 bg-green-400 rounded-full'></div>
+                                  <span>Drag & Drop</span>
+                                </div>
+                                <div className='flex items-center space-x-1 text-xs text-slate-400 dark:text-slate-500'>
+                                  <div className='w-1.5 h-1.5 bg-blue-400 rounded-full'></div>
+                                  <span>Auto-validate</span>
+                                </div>
+                                <div className='flex items-center space-x-1 text-xs text-slate-400 dark:text-slate-500'>
+                                  <div className='w-1.5 h-1.5 bg-purple-400 rounded-full'></div>
+                                  <span>Secure</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -710,12 +866,17 @@ export default function UploadControllerReportPage() {
                           !selectedYear ||
                           uploadState.uploading
                         }
-                        className='px-8 py-3 text-primary-500 dark:text-white bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed'
+                        className='px-8 py-3 text-blue-600 bg-gradient-to-r from-primary via-blue-600 to-purple-600 hover:from-primary/90 hover:via-blue-600/90 hover:to-purple-600/90 shadow-xl hover:shadow-primary/30 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100'
                         icon={<DocumentArrowUpIcon className='h-5 w-5' />}
                       >
-                        {uploadState.uploading
-                          ? 'Uploading...'
-                          : 'Upload Report'}
+                        {uploadState.uploading ? (
+                          <span className='flex items-center space-x-2'>
+                            <div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin'></div>
+                            <span>Uploading...</span>
+                          </span>
+                        ) : (
+                          'Upload Report'
+                        )}
                       </Button>
                     </div>
                   </CardContent>

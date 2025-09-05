@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Profile fetch with timeout and error handling
   const fetchUserProfile = useCallback(
     async (userId: string, email: string) => {
-      const PROFILE_TIMEOUT = 8000; // 8 second timeout for profile fetch
+      // Shorter timeout in development mode
+      const isDev = process.env.NODE_ENV === 'development';
+      const PROFILE_TIMEOUT = isDev ? 3000 : 5000; // 3s in dev, 5s in prod
 
       if (isFetchingProfile.current) {
         return;
@@ -141,11 +143,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state with timeout
   useEffect(() => {
     let mounted = true;
-    const AUTH_INIT_TIMEOUT = 10000; // 10 seconds timeout
+    // Shorter timeout in development mode
+    const isDev = process.env.NODE_ENV === 'development';
+    const AUTH_INIT_TIMEOUT = isDev ? 3000 : 5000; // 3s in dev, 5s in prod
 
     const initializeAuth = async () => {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), AUTH_INIT_TIMEOUT);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        if (mounted) {
+          // Force loading to false after timeout
+          setLoading(false);
+          setIsInitialized(true);
+        }
+      }, AUTH_INIT_TIMEOUT);
 
       try {
         const {
@@ -175,21 +186,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   reject(
                     new Error('Profile fetch timeout during initialization')
                   );
-                }, 8000); // 8 second timeout for initial profile fetch
+                }, 3000); // Reduced to 3 seconds for initial profile fetch
               }),
             ]);
           } catch {
-            // Continue without error notification
+            // Continue without error notification - just set loading to false
+            if (mounted) {
+              setLoading(false);
+            }
           }
         }
 
-        setLoading(false);
-        setIsInitialized(true);
+        if (mounted) {
+          setLoading(false);
+          setIsInitialized(true);
+        }
       } catch {
         if (mounted) {
           setLoading(false);
           setIsInitialized(true);
         }
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
 
