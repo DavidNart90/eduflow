@@ -1,54 +1,29 @@
 import type { NextConfig } from 'next';
 import os from 'os';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   // Power settings for development
   poweredByHeader: false,
 
+  // Set the output file tracing root to avoid workspace warnings
+  outputFileTracingRoot: path.join(__dirname),
+
   // Experimental features
   experimental: {
-    // Bundle size optimization
-    esmExternals: 'loose',
-    serverComponentsExternalPackages: [
-      '@emotion/react',
-      'chart.js',
-      'react-chartjs-2',
-    ],
     // Enable optimized CSS loading
     optimizeCss: true,
     // Reduce CPU usage during development
     cpus: Math.max(1, Math.floor(os.cpus().length / 2)),
   },
 
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['@emotion/react', 'chart.js', 'react-chartjs-2'],
+
   // Compiler optimizations
   compiler: {
     // Remove console.log in production
     removeConsole: process.env.NODE_ENV === 'production',
-  },
-
-  // Turbopack configuration for development (replaces webpack config)
-  turbo: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-    resolveAlias: {
-      // Handle client-side fallbacks for Supabase
-      crypto: false,
-      stream: false,
-      url: false,
-      zlib: false,
-      http: false,
-      https: false,
-      assert: false,
-      os: false,
-      path: false,
-      fs: false,
-      net: false,
-      tls: false,
-    },
   },
 
   // Webpack configuration for production builds only

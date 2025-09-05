@@ -1,15 +1,39 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context-simple';
 
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [maxLoadingReached, setMaxLoadingReached] = useState(false);
+  const [showRefreshOption, setShowRefreshOption] = useState(false);
+
+  // Maximum loading timeout - prevent infinite loading
+  useEffect(() => {
+    // Shorter timeout in development mode
+    const isDev = process.env.NODE_ENV === 'development';
+    const maxLoadingTime = isDev ? 5000 : 8000; // 5s in dev, 8s in prod
+    const refreshOptionTime = isDev ? 3000 : 6000; // 3s in dev, 6s in prod
+
+    const maxLoadingTimer = setTimeout(() => {
+      setMaxLoadingReached(true);
+    }, maxLoadingTime);
+
+    // Show refresh option earlier in development
+    const refreshOptionTimer = setTimeout(() => {
+      setShowRefreshOption(true);
+    }, refreshOptionTime);
+
+    return () => {
+      clearTimeout(maxLoadingTimer);
+      clearTimeout(refreshOptionTimer);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading || maxLoadingReached) {
       if (user) {
         // Redirect authenticated users to their appropriate dashboard immediately
         if (user.role === 'teacher') {
@@ -24,10 +48,10 @@ export default function Home() {
         router.replace('/auth/login');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, maxLoadingReached, router]);
 
   // Early redirect - if we already know the auth state, redirect immediately
-  if (!loading) {
+  if (!loading || maxLoadingReached) {
     if (user) {
       // For authenticated users, show minimal loading while redirecting
       return (
@@ -78,6 +102,21 @@ export default function Home() {
         <p className='text-sm text-slate-500 dark:text-slate-500'>
           New Juaben Teachers Savings Association Management System
         </p>
+
+        {/* Refresh option after 6 seconds */}
+        {showRefreshOption && (
+          <div className='mt-8 space-y-3'>
+            <p className='text-sm text-slate-500 dark:text-slate-400'>
+              Taking longer than usual?
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className='px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium'
+            >
+              Refresh Page
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

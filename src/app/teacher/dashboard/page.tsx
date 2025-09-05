@@ -9,6 +9,7 @@ import { useTeacherReports } from '@/hooks/useTeacherReports';
 import { Card, CardContent, Button, Badge } from '@/components/ui';
 import {
   ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   ClockIcon,
   PhoneIcon,
   UserIcon,
@@ -337,8 +338,18 @@ export default function TeacherDashboard() {
                     </p>
                   </div>
 
-                  <div className='flex items-center text-green-600 dark:text-green-400 text-sm font-medium'>
-                    <ArrowTrendingUpIcon className='h-4 w-4 mr-1' />
+                  <div
+                    className={`flex items-center text-sm font-medium ${
+                      (dashboardData?.trend_percentage || 0) >= 0
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {(dashboardData?.trend_percentage || 0) >= 0 ? (
+                      <ArrowTrendingUpIcon className='h-4 w-4 mr-1' />
+                    ) : (
+                      <ArrowTrendingDownIcon className='h-4 w-4 mr-1' />
+                    )}
                     <span>
                       {dashboardData?.trend_percentage !== undefined
                         ? `${dashboardData.trend_percentage >= 0 ? '+' : ''}${dashboardData.trend_percentage.toFixed(1)}% from last month`
@@ -351,14 +362,13 @@ export default function TeacherDashboard() {
                     <h4 className='text-sm font-medium text-slate-700 dark:text-slate-300'>
                       Total Contributions
                     </h4>
-                    <div className='grid grid-cols-2 gap-3 text-sm'>
-                      <div className='flex justify-between items-center'>
-                        <span className='text-slate-600 dark:text-slate-400'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm'>
+                      <div className='flex justify-between items-center sm:col-span-'>
+                        <span className='text-green-600 dark:text-green-400 text-sm font-medium'>
                           {dashboardData?.total_contributions?.count || 0}{' '}
                           contributions
                         </span>
                       </div>
-                      <div></div>
                       <div className='flex justify-between items-center'>
                         <span className='text-slate-600 dark:text-slate-400'>
                           Controller
@@ -379,7 +389,7 @@ export default function TeacherDashboard() {
                           )}
                         </span>
                       </div>
-                      <div className='flex justify-between items-center col-span-2'>
+                      <div className='flex justify-between items-center sm:col-span-2'>
                         <span className='text-slate-600 dark:text-slate-400'>
                           Interest Earned
                         </span>
