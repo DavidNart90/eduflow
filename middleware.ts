@@ -16,9 +16,27 @@ const BYPASS_PATHS = new Set([
 
 const AUTH_PATHS = new Set(['/auth', '/api/auth']);
 
-// Simple in-memory cache for user sessions (for development - use Redis in production)
 const sessionCache = new Map<string, { user: unknown; expires: number }>();
 const CACHE_DURATION = 60000; // 1 minute
+=======
+  const isAuthPath =
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/api/auth') ||
+    request.nextUrl.pathname === '/';
+
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-'));
+
+  if (!hasSessionCookie) {
+    if (!isAuthPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/auth/login';
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
 
 // Rate limiting for auth requests
 const authAttempts = new Map<string, { count: number; resetTime: number }>();
@@ -33,6 +51,7 @@ function checkRateLimit(ip: string): boolean {
     authAttempts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     return true;
   }
+
 
   if (attempt.count >= MAX_AUTH_ATTEMPTS) {
     return false;
@@ -69,6 +88,10 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.')
   ) {
     return NextResponse.next();
+  if (!user && !isAuthPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/login';
+    return NextResponse.redirect(url);
   }
 
   // Rate limiting for authentication routes
