@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 'use client';
 
 import {
@@ -212,24 +213,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         profileCache.current = {};
         setLoading(false);
-      } else {
-        // Update session
-        setSession(newSession);
+      }
 
-        // Handle user authentication
-        if (newSession?.user && event === 'SIGNED_IN') {
-          await fetchUserProfile(newSession.user.id, newSession.user.email!);
-        } else if (newSession?.user && !user) {
-          await fetchUserProfile(newSession.user.id, newSession.user.email!);
-        } else if (!newSession?.user) {
-          setUser(null);
-          profileCache.current = {};
-          setLoading(false);
-        }
+      // Update session
+      setSession(newSession);
+
+      // Handle user authentication
+      if (
+        newSession?.user &&
+        (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')
+      ) {
+        await fetchUserProfile(newSession.user.id, newSession.user.email!);
+      } else if (newSession?.user && !user) {
+        await fetchUserProfile(newSession.user.id, newSession.user.email!);
+      } else if (!newSession?.user) {
+        setUser(null);
+        profileCache.current = {};
+        setLoading(false);
       }
     });
-
-    // eslint-disable-next-line consistent-return
     return () => {
       subscription.unsubscribe();
     };
@@ -317,21 +319,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sign out from Supabase
       await supabase.auth.signOut();
 
-      // Give time for any pending operations to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Allow time for auth state to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Use window.location.replace to avoid Next.js router chunk issues
-      // This creates a clean page load and avoids chunk loading errors
-      window.location.replace('/auth/login');
+      // Reset loading state - let the auth state change handle navigation
+      setLoading(false);
     } catch {
       // Even if Supabase signOut fails, ensure local state is cleared
       setUser(null);
       setSession(null);
       profileCache.current = {};
       setLoading(false);
-
-      // Force navigation regardless of error
-      window.location.replace('/auth/login');
     }
   };
 
@@ -409,6 +407,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+// Add display name for Fast Refresh stability
+AuthProvider.displayName = 'AuthProvider';
 
 export function useAuth() {
   const context = useContext(AuthContext);

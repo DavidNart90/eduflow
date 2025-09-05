@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
@@ -27,7 +34,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the user by email
-    const user = authUsers.users.find(u => u.email === email);
+    const user = (authUsers.users as AuthUser[]).find(
+      (u: AuthUser) => u.email === email
+    );
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

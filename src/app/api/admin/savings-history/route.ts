@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '@/lib/supabase';
 
+interface SavingsTransaction {
+  id?: number;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  transaction_type: 'momo' | 'deposit' | 'controller' | 'interest';
+  payment_method?: string;
+  transaction_date?: string;
+  users?: {
+    full_name: string;
+    employee_id: string;
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get the authorization header
@@ -228,45 +241,47 @@ export async function GET(request: NextRequest) {
     };
 
     if (summaryData) {
-      summaryData.forEach(transaction => {
-        // Only count completed transactions toward total amount
-        if (transaction.status === 'completed') {
-          summary.totalAmount += transaction.amount;
-        }
+      (summaryData as SavingsTransaction[]).forEach(
+        (transaction: SavingsTransaction) => {
+          // Only count completed transactions toward total amount
+          if (transaction.status === 'completed') {
+            summary.totalAmount += transaction.amount;
+          }
 
-        switch (transaction.status) {
-          case 'completed':
-            summary.completedTransactions++;
-            break;
-          case 'pending':
-            summary.pendingTransactions++;
-            break;
-          case 'failed':
-            summary.failedTransactions++;
-            break;
-          default:
-            // Handle unknown status
-            break;
-        }
-
-        if (transaction.status === 'completed') {
-          switch (transaction.transaction_type) {
-            case 'momo':
-            case 'deposit':
-              summary.mobileMoneyTotal += transaction.amount;
+          switch (transaction.status) {
+            case 'completed':
+              summary.completedTransactions++;
               break;
-            case 'controller':
-              summary.controllerTotal += transaction.amount;
+            case 'pending':
+              summary.pendingTransactions++;
               break;
-            case 'interest':
-              summary.interestTotal += transaction.amount;
+            case 'failed':
+              summary.failedTransactions++;
               break;
             default:
-              // Handle unknown transaction type
+              // Handle unknown status
               break;
           }
+
+          if (transaction.status === 'completed') {
+            switch (transaction.transaction_type) {
+              case 'momo':
+              case 'deposit':
+                summary.mobileMoneyTotal += transaction.amount;
+                break;
+              case 'controller':
+                summary.controllerTotal += transaction.amount;
+                break;
+              case 'interest':
+                summary.interestTotal += transaction.amount;
+                break;
+              default:
+                // Handle unknown transaction type
+                break;
+            }
+          }
         }
-      });
+      );
     }
 
     return NextResponse.json({

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context-simple';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -197,16 +198,15 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent double submission
+    if (loading) return;
+
     if (!isSectionValid(1) || !isSectionValid(2)) {
-      showError(
-        'Validation Error',
-        'Please complete all required fields correctly'
-      );
+      // Don't show toast for validation - the inline validation messages are sufficient
       return;
     }
 
     setLoading(true);
-    showError('', '');
 
     try {
       // First, check if employee ID is already taken
@@ -339,12 +339,6 @@ export default function SignupPage() {
           );
         }
 
-        // Profile created successfully
-        showSuccess(
-          'Account Created Successfully',
-          'Redirecting to dashboard...'
-        );
-
         // Now confirm the email automatically since we're not using email verification
         try {
           const confirmResponse = await fetch('/api/auth/verify', {
@@ -363,9 +357,16 @@ export default function SignupPage() {
           // Email confirmation error occurred
         }
 
-        // Redirect to appropriate dashboard based on role immediately
+        // Final success message
+        showSuccess(
+          'Account Created Successfully',
+          'Redirecting to your dashboard...'
+        );
 
-        // Redirect immediately to avoid race condition with main page routing
+        // Add a small delay to let the user see the success message
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Redirect to appropriate dashboard based on role immediately
         if (role === 'admin') {
           router.replace('/admin/dashboard');
           return;
@@ -642,6 +643,7 @@ export default function SignupPage() {
                   type='submit'
                   disabled={loading || !isSectionValid(1) || !isSectionValid(2)}
                   className='px-6'
+                  loading={loading}
                 >
                   {loading ? 'Creating Account...' : 'Create Account'}
                 </Button>
@@ -653,12 +655,12 @@ export default function SignupPage() {
           <div className='text-center'>
             <p className='text-sm text-gray-600 dark:text-gray-300'>
               Already have an account?{' '}
-              <a
+              <Link
                 href='/auth/login'
                 className='text-primary-600 hover:text-primary-500 font-medium transition-colors'
               >
                 Sign in here
-              </a>
+              </Link>
             </p>
           </div>
         </div>

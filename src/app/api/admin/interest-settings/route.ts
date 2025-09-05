@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '../../../../lib/supabase';
 
+interface InterestSetting {
+  id?: number;
+  interest_rate: number;
+  payment_frequency: 'quarterly' | 'semi-annual' | 'annual';
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  created_by_user?: {
+    full_name: string;
+    email: string;
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get the authorization header
@@ -82,7 +96,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get active setting
-    const activeSetting = settings?.find(setting => setting.is_active);
+    const activeSetting = (settings as InterestSetting[])?.find(
+      (setting: InterestSetting) => setting.is_active
+    );
 
     return NextResponse.json({
       success: true,

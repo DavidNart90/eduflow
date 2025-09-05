@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '@/lib/supabase';
 
+interface Transaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  transaction_date: string;
+  transaction_type: string;
+  status: string;
+  transaction_reference?: string;
+  created_at: string;
+}
+
 interface TransactionWithBalance {
   id: string;
   user_id: string;
@@ -192,14 +203,14 @@ export async function GET(request: NextRequest) {
       let runningBalance = 0;
 
       if (allUserTransactions) {
-        allUserTransactions.forEach(tx => {
+        (allUserTransactions as Transaction[]).forEach((tx: Transaction) => {
           runningBalance += tx.amount;
           balanceMap.set(tx.id, runningBalance);
         });
       }
 
       // Apply the calculated balances to our paginated transactions
-      transactions.forEach(transaction => {
+      (transactions as Transaction[]).forEach((transaction: Transaction) => {
         const balance = balanceMap.get(transaction.id) || 0;
         transactionsWithBalance.push({
           ...transaction,
@@ -222,7 +233,7 @@ export async function GET(request: NextRequest) {
       .eq('status', 'completed');
 
     if (allTransactions) {
-      allTransactions.forEach(transaction => {
+      (allTransactions as Transaction[]).forEach((transaction: Transaction) => {
         if (
           transaction.transaction_type === 'momo' ||
           transaction.transaction_type === 'deposit'
