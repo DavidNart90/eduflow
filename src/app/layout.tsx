@@ -65,7 +65,9 @@ export default function RootLayout({
                 );
                 
                 if (isChunkError) {
-                  console.warn('Chunk loading error detected, reloading page...', error.message);
+                  if (typeof console !== 'undefined' && console.warn) {
+                    console.warn('Chunk loading error detected, reloading page...', error.message);
+                  }
                   // Small delay to avoid rapid reloads
                   setTimeout(() => {
                     window.location.reload();
@@ -83,7 +85,9 @@ export default function RootLayout({
                 );
                 
                 if (isChunkError) {
-                  console.warn('Chunk loading promise rejection, reloading page...', error.message);
+                  if (typeof console !== 'undefined' && console.warn) {
+                    console.warn('Chunk loading promise rejection, reloading page...', error.message);
+                  }
                   event.preventDefault(); // Prevent unhandled rejection error
                   setTimeout(() => {
                     window.location.reload();
@@ -99,7 +103,9 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                       swRegistered = true;
-                      console.log('SW registered: ', registration);
+                      if (typeof console !== 'undefined' && console.log) {
+                        console.log('SW registered: ', registration);
+                      }
                       
                       // Handle updates
                       registration.addEventListener('updatefound', () => {
@@ -117,7 +123,9 @@ export default function RootLayout({
                       });
                     })
                     .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
+                      if (typeof console !== 'undefined' && console.log) {
+                        console.log('SW registration failed: ', registrationError);
+                      }
                     });
                 };
 
