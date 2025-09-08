@@ -16,8 +16,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Initialize client-side rendering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
+    // Only run on client-side to avoid hydration mismatch
+    if (!isClient) return;
+
     // Get theme from localStorage or default to light
     const savedTheme = localStorage.getItem('eduflow-theme') as Theme;
     if (savedTheme) {
@@ -30,14 +39,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         : 'light';
       setThemeState(systemTheme);
     }
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
+    // Only run on client-side to avoid hydration mismatch
+    if (!isClient) return;
+
     // Update document class and localStorage when theme changes
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
     localStorage.setItem('eduflow-theme', theme);
-  }, [theme]);
+  }, [theme, isClient]);
 
   const toggleTheme = () => {
     if (isTransitioning) return; // Prevent rapid toggling

@@ -8,20 +8,42 @@ import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import { PublicRoute } from '@/components/ProtectedRoute';
+import { PublicRoute } from '@/components/ProtectedRouteOptimized';
 
 export default function LoginPage() {
+  const [mounted, setMounted] = useState(false);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { signIn, loading: authLoading } = useAuth();
   const { showSuccess, showError } = useToast();
+
+  // Always call hooks - but handle SSR case with try-catch
+  let signIn, authLoading;
+  try {
+    const auth = useAuth();
+    signIn = auth.signIn;
+    authLoading = auth.loading;
+  } catch {
+    // Fallback for SSR/when AuthProvider is not available
+    signIn = async () => {
+      await Promise.resolve();
+      return { error: null };
+    };
+    authLoading = false;
+  }
+
+  // Handle mounting state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle auth loading state
   useEffect(() => {
+    if (!mounted) return;
+
     if (authLoading) {
       setLoading(true);
     } else {
@@ -30,10 +52,13 @@ export default function LoginPage() {
         setLoading(false);
       }
     }
-  }, [authLoading, success]);
+  }, [authLoading, success, mounted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!mounted) return;
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -99,6 +124,29 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state during SSR/hydration
+  if (!mounted) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4'>
+        <div className='max-w-md w-full space-y-8'>
+          <div className='text-center'>
+            <div className='mx-auto h-12 w-12 md:h-16 md:w-16 bg-primary-500 rounded-full flex items-center justify-center mb-4 shadow-lg'>
+              <span className='text-lg md:text-2xl font-bold text-white'>
+                EF
+              </span>
+            </div>
+            <h1 className='text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2'>
+              Eduflow
+            </h1>
+            <p className='text-sm md:text-lg text-gray-600 dark:text-gray-300'>
+              Loading...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PublicRoute>

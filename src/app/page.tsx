@@ -12,16 +12,14 @@ export default function Home() {
 
   // Maximum loading timeout - prevent infinite loading
   useEffect(() => {
-    // Shorter timeout in development mode
-    const isDev = process.env.NODE_ENV === 'development';
-    const maxLoadingTime = isDev ? 5000 : 8000; // 5s in dev, 8s in prod
-    const refreshOptionTime = isDev ? 3000 : 6000; // 3s in dev, 6s in prod
+    // Use consistent timeouts for both server and client
+    const maxLoadingTime = 8000; // 8 seconds
+    const refreshOptionTime = 6000; // 6 seconds
 
     const maxLoadingTimer = setTimeout(() => {
       setMaxLoadingReached(true);
     }, maxLoadingTime);
 
-    // Show refresh option earlier in development
     const refreshOptionTimer = setTimeout(() => {
       setShowRefreshOption(true);
     }, refreshOptionTime);

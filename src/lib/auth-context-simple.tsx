@@ -37,11 +37,11 @@ interface AuthContextType {
     email: string,
     password: string,
     userData: Partial<AuthUser>
-  ) => Promise<{ error: AuthError | null | Error }>;
+  ) => Promise<{ error: AuthError | Error | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (
     updates: Partial<AuthUser>
-  ) => Promise<{ error: AuthError | null | Error }>;
+  ) => Promise<{ error: AuthError | Error | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -55,25 +55,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileCache = useRef<{ [key: string]: AuthUser }>({});
   const isFetchingProfile = useRef(false);
+  const initializationRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Profile fetch with timeout and error handling
   const fetchUserProfile = useCallback(
-    async (userId: string, email: string) => {
-      // Shorter timeout in development mode
-      const isDev = process.env.NODE_ENV === 'development';
-      const PROFILE_TIMEOUT = isDev ? 3000 : 5000; // 3s in dev, 5s in prod
-
-      if (isFetchingProfile.current) {
-        return;
+    async (userId: string, email: string): Promise<AuthUser | null> => {
+      // Prevent multiple simultaneous fetches for the same user
+      if (isFetchingProfile.current || !mountedRef.current) {
+        return null;
       }
 
-      // Check cache first
-      if (profileCache.current[userId]) {
-        setUser(profileCache.current[userId]);
-        setLoading(false);
-        return;
+      // Create a more robust cache key
+      const cacheKey = `${userId}_${email}`;
+
+      // Check cache first with both userId and composite key
+      if (profileCache.current[userId] || profileCache.current[cacheKey]) {
+        const cachedUser =
+          profileCache.current[userId] || profileCache.current[cacheKey];
+        setUser(cachedUser);
+        return cachedUser;
       }
 
+      const PROFILE_TIMEOUT = 8000; // Increased timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), PROFILE_TIMEOUT);
 
@@ -93,16 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         );
 
+        if (!mountedRef.current) return null;
+
         if (response.ok) {
           const result = await response.json();
-          const validatedUser = {
+          const validatedUser: AuthUser = {
             ...result.user,
-            id: userId, // Ensure ID matches
-            email, // Ensure email matches
+            id: userId,
+            email,
           };
           setUser(validatedUser);
+          // Cache with both keys for better hit rate
           profileCache.current[userId] = validatedUser;
-        } else if (response.status === 404) {
+          profileCache.current[cacheKey] = validatedUser;
+          return validatedUser;
+        }
+
+        if (response.status === 404) {
           // Create basic profile for new users
           const basicUser: AuthUser = {
             id: userId,
@@ -114,57 +125,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           setUser(basicUser);
           profileCache.current[userId] = basicUser;
-        } else {
-          throw new Error(`Failed to fetch profile: ${response.statusText}`);
+          profileCache.current[cacheKey] = basicUser;
+          return basicUser;
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        throw new Error(`Failed to fetch profile: ${response.statusText}`);
       } catch (error) {
-        // Use fallback profile on error
-        const basicUser: AuthUser = {
-          id: userId,
-          email,
-          full_name: email.split('@')[0],
-          role: 'teacher',
-          employee_id: 'PENDING',
-          management_unit: 'Demo Unit',
-        };
-        setUser(basicUser);
-        profileCache.current[userId] = basicUser;
+        if (!mountedRef.current) return null;
+
+        // Only create fallback if it's not an abort error
+        if (!(error instanceof Error && error.name === 'AbortError')) {
+          const basicUser: AuthUser = {
+            id: userId,
+            email,
+            full_name: email.split('@')[0],
+            role: 'teacher',
+            employee_id: 'PENDING',
+            management_unit: 'Demo Unit',
+          };
+          setUser(basicUser);
+          profileCache.current[userId] = basicUser;
+          profileCache.current[cacheKey] = basicUser;
+          return basicUser;
+        }
+        return null;
       } finally {
         clearTimeout(timeoutId);
         isFetchingProfile.current = false;
-        setLoading(false);
       }
     },
     [session?.access_token]
-  );
-
-  // Initialize auth state with timeout
+  ); // Initialize auth state with timeout
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializationRef.current) return;
+    initializationRef.current = true;
+
     let mounted = true;
-    // Shorter timeout in development mode
-    const isDev = process.env.NODE_ENV === 'development';
-    const AUTH_INIT_TIMEOUT = isDev ? 3000 : 5000; // 3s in dev, 5s in prod
+    const AUTH_INIT_TIMEOUT = 10000; // Increased timeout
 
     const initializeAuth = async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        if (mounted) {
-          // Force loading to false after timeout
-          setLoading(false);
-          setIsInitialized(true);
-        }
-      }, AUTH_INIT_TIMEOUT);
-
       try {
         const {
           data: { session: initialSession },
           error,
         } = await supabase.auth.getSession();
 
-        if (!mounted) return;
+        if (!mounted || !mountedRef.current) return;
 
         if (error) {
           setLoading(false);
@@ -174,49 +181,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(initialSession);
 
-        if (initialSession?.user) {
-          try {
-            await Promise.race([
-              fetchUserProfile(
-                initialSession.user.id,
-                initialSession.user.email!
-              ),
-              new Promise((_, reject) => {
-                setTimeout(() => {
-                  reject(
-                    new Error('Profile fetch timeout during initialization')
-                  );
-                }, 3000); // Reduced to 3 seconds for initial profile fetch
-              }),
-            ]);
-          } catch {
-            // Continue without error notification - just set loading to false
-            if (mounted) {
-              setLoading(false);
-            }
+        if (initialSession?.user?.id && initialSession?.user?.email) {
+          // Fetch user profile and wait for completion
+          await fetchUserProfile(
+            initialSession.user.id,
+            initialSession.user.email
+          );
+
+          // Only set loading to false after we have user data or confirmed failure
+          if (mounted && mountedRef.current) {
+            setLoading(false);
+            setIsInitialized(true);
+          }
+        } else {
+          // No session, safe to set loading to false
+          if (mounted && mountedRef.current) {
+            setLoading(false);
+            setIsInitialized(true);
           }
         }
-
-        if (mounted) {
-          setLoading(false);
-          setIsInitialized(true);
-        }
       } catch {
-        if (mounted) {
+        if (mounted && mountedRef.current) {
           setLoading(false);
           setIsInitialized(true);
         }
-      } finally {
-        clearTimeout(timeoutId);
       }
     };
+
+    // Add timeout as fallback
+    const timeoutId = setTimeout(() => {
+      if (mounted && mountedRef.current && !isInitialized) {
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    }, AUTH_INIT_TIMEOUT);
 
     initializeAuth();
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, isInitialized]);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -225,42 +231,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mountedRef.current) return;
+
       // Handle sign out
       if (event === 'SIGNED_OUT') {
         setSession(null);
         setUser(null);
         profileCache.current = {};
         setLoading(false);
+        return;
       }
 
       // Update session
       setSession(newSession);
 
       // Handle user authentication
-      if (
-        newSession?.user &&
-        (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')
-      ) {
-        await fetchUserProfile(newSession.user.id, newSession.user.email!);
-      } else if (newSession?.user && !user) {
-        await fetchUserProfile(newSession.user.id, newSession.user.email!);
+      if (newSession?.user?.id && newSession?.user?.email) {
+        const cacheKey = `${newSession.user.id}_${newSession.user.email}`;
+
+        // Check if we already have this user in cache
+        if (
+          profileCache.current[newSession.user.id] ||
+          profileCache.current[cacheKey]
+        ) {
+          const cachedUser =
+            profileCache.current[newSession.user.id] ||
+            profileCache.current[cacheKey];
+          setUser(cachedUser);
+          setLoading(false);
+          return;
+        }
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Don't set loading to false until we have user profile
+          await fetchUserProfile(newSession.user.id, newSession.user.email);
+
+          // Only set loading to false after profile fetch completes
+          if (mountedRef.current) {
+            setLoading(false);
+          }
+        } else {
+          // User session exists but no user profile loaded - always fetch to be safe
+          await fetchUserProfile(newSession.user.id, newSession.user.email);
+
+          if (mountedRef.current) {
+            setLoading(false);
+          }
+        }
       } else if (!newSession?.user) {
         setUser(null);
         profileCache.current = {};
         setLoading(false);
       }
     });
+
     return () => {
       subscription.unsubscribe();
     };
-  }, [isInitialized, fetchUserProfile, user]);
+  }, [isInitialized, fetchUserProfile]);
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
+    if (!mountedRef.current)
+      return { error: new AuthError('Component unmounted', 500) };
 
-    const SIGN_IN_TIMEOUT = 15000; // 15 seconds total timeout
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), SIGN_IN_TIMEOUT);
+    setLoading(true);
 
     try {
       // Clear any existing state
@@ -268,7 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       profileCache.current = {};
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -278,53 +312,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
       }
 
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-
-      if (!currentSession) {
-        throw new Error('Failed to establish session');
+      if (!data.session || !data.user) {
+        setLoading(false);
+        return { error: new AuthError('Failed to establish session', 500) };
       }
 
-      setSession(currentSession);
+      // Set session immediately
+      setSession(data.session);
 
+      // Fetch user profile - don't set loading to false until complete
       try {
-        const response = await fetch(
-          `/api/auth/profile?email=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${currentSession.access_token}`,
-            },
-            signal: controller.signal,
-          }
-        );
+        await fetchUserProfile(data.user.id, data.user.email!);
 
-        if (response.ok) {
-          const { user: profile } = await response.json();
-          if (profile) {
-            setUser(profile);
-            profileCache.current[currentSession.user.id] = profile;
-          }
+        if (mountedRef.current) {
+          // Profile loaded successfully, loading will be set to false in fetchUserProfile
+          return { error: null };
         }
-      } catch {
-        // Don't fail sign in on profile fetch error
-      }
 
-      return { error: null };
+        // Profile failed to load but auth succeeded
+        if (mountedRef.current) {
+          setLoading(false);
+        }
+        return { error: null };
+      } catch {
+        // Profile fetch failed, but auth succeeded
+        if (mountedRef.current) {
+          setLoading(false);
+        }
+        return { error: null };
+      }
     } catch (error) {
-      const isTimeout = error instanceof Error && error.name === 'AbortError';
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
       return {
-        error: new AuthError(
-          isTimeout ? 'Sign in timeout' : 'Sign in failed',
-          500
-        ),
+        error:
+          error instanceof AuthError
+            ? error
+            : new AuthError('Sign in failed', 500),
       };
     }
   };
 
   const signOut = async (): Promise<void> => {
+    if (!mountedRef.current) return;
+
     try {
       // Set loading state to prevent any UI updates during logout
       setLoading(true);
@@ -337,17 +369,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sign out from Supabase
       await supabase.auth.signOut();
 
-      // Allow time for auth state to propagate
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       // Reset loading state - let the auth state change handle navigation
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     } catch {
       // Even if Supabase signOut fails, ensure local state is cleared
-      setUser(null);
-      setSession(null);
-      profileCache.current = {};
-      setLoading(false);
+      if (mountedRef.current) {
+        setUser(null);
+        setSession(null);
+        profileCache.current = {};
+        setLoading(false);
+      }
     }
   };
 
@@ -403,13 +436,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (!session?.user?.id || !session?.user?.email) return;
+    if (!session?.user?.id || !session?.user?.email || !mountedRef.current)
+      return;
 
-    // Clear cache and refetch
+    // Clear cache with both keys and refetch
+    const cacheKey = `${session.user.id}_${session.user.email}`;
     delete profileCache.current[session.user.id];
+    delete profileCache.current[cacheKey];
     setLoading(true);
     await fetchUserProfile(session.user.id, session.user.email);
+
+    if (mountedRef.current) {
+      setLoading(false);
+    }
   };
+
+  // Cleanup effect
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const value = {
     user,
