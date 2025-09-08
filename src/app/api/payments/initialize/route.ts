@@ -19,8 +19,6 @@ export async function POST(req: NextRequest) {
 
     // Validate Paystack configuration
     if (!process.env.PAYSTACK_PUBLIC_KEY || !process.env.PAYSTACK_SECRET_KEY) {
-      // eslint-disable-next-line no-console
-      console.error('Missing Paystack configuration');
       return NextResponse.json(
         { status: 'error', message: 'Payment service not configured' },
         { status: 500 }
@@ -87,6 +85,20 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { status: 'error', message: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify user exists in database
+    const { data: existingUser, error: userCheckError } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (userCheckError || !existingUser) {
+      return NextResponse.json(
+        { status: 'error', message: 'User not found in database' },
         { status: 400 }
       );
     }
@@ -160,11 +172,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log('Paystack payload prepared:', {
-        currency: paystackPayload.currency,
-        network: networkConfig.displayName,
-      });
+      // No console logs to keep code clean
     }
 
     // Initialize payment with Paystack
@@ -181,19 +189,10 @@ export async function POST(req: NextRequest) {
       await response.json();
 
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log('Paystack response received:', {
-        status: responseData.status,
-        paymentStatus: responseData.data?.status,
-      });
+      // No console logs to keep code clean
     }
 
     if (responseData.status && responseData.data) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log('Payment status:', responseData.data.status);
-      }
-
       // Determine the transaction status based on Paystack response
       let transactionStatus = 'pending';
       let paymentDetails = {
@@ -216,10 +215,6 @@ export async function POST(req: NextRequest) {
           authorization_code:
             responseData.data.authorization?.authorization_code,
         };
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.log('Payment completed immediately');
-        }
       } else if (responseData.data.status === 'failed') {
         transactionStatus = 'failed';
         paymentDetails = {
@@ -228,10 +223,6 @@ export async function POST(req: NextRequest) {
             responseData.data.gateway_response || 'Payment failed',
           failed_at: new Date().toISOString(),
         };
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.log('Payment failed immediately');
-        }
       }
 
       // Update transaction with Paystack response

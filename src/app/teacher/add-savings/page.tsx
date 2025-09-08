@@ -206,18 +206,8 @@ export default function AddSavingsPage() {
           'Payment Failed',
           result.message || 'Failed to initialize payment'
         );
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.error('Payment initialization failed:', result.message);
-          // eslint-disable-next-line no-console
-          console.error('Full result:', result);
-        }
       }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Payment error:', error);
-      }
+    } catch {
       setStep('error');
       showError(
         'Network Error',
@@ -278,11 +268,7 @@ export default function AddSavingsPage() {
             'Payment is taking too long. Please try again or contact support'
           );
         }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.error('Status polling error:', error);
-        }
+      } catch {
         attempts++;
         if (attempts < maxAttempts) {
           // Exponential backoff on errors too

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context-simple';
 import { useAppStore } from '@/lib/stores';
 import { Card, CardContent } from '@/components/ui';
 
@@ -36,6 +36,7 @@ export default function ProtectedRoute({
     if (lastUserIdRef.current !== user?.id) {
       hasRedirectedRef.current = false;
       lastUserIdRef.current = user?.id || null;
+      setIsChecking(true); // Reset checking state when user changes
     }
 
     // Reset role check when role changes
@@ -43,7 +44,13 @@ export default function ProtectedRoute({
       lastRoleRef.current = user?.role || null;
     }
 
-    if (!loading && !hasRedirectedRef.current) {
+    // Only proceed with auth checks when loading is complete
+    if (!loading) {
+      // If we already redirected for this user/session, don't check again
+      if (hasRedirectedRef.current) {
+        return;
+      }
+
       if (!user) {
         // User is not authenticated, redirect to login
         setError('Please log in to access this page');
@@ -160,8 +167,10 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
+    // Only redirect if we have a user, loading is complete, and we haven't redirected yet
     if (!loading && user && !hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
+
       // User is authenticated, redirect to appropriate dashboard
       if (user.role === 'teacher') {
         router.replace('/teacher/dashboard');
@@ -170,6 +179,11 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
       } else {
         router.replace('/dashboard');
       }
+    }
+
+    // Reset redirect flag when user changes (logout scenario)
+    if (!user && hasRedirectedRef.current) {
+      hasRedirectedRef.current = false;
     }
   }, [user, loading, router]);
 

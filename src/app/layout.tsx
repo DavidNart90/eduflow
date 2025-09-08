@@ -47,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en'>
+    <html lang='en' suppressHydrationWarning={true}>
       <head>
         {/* Service Worker Registration with memory leak prevention */}
         <script
@@ -145,7 +145,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className='antialiased'>
+      <body className='antialiased' suppressHydrationWarning={true}>
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>{children}</AuthProvider>
