@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import { PublicRoute } from '@/components/ProtectedRouteOptimized';
+import { PublicRoute } from '@/components/ProtectedRoute';
 
 export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
