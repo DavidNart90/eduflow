@@ -110,14 +110,14 @@ export default function LoginPage() {
         setLoading(false);
       } else {
         // Let the auth context handle the redirect
-        // The auth state change will trigger the appropriate redirect
+        // The auth state change will trigger the appropriate redirect with built-in delay
         showSuccess('Login Successful', 'Redirecting to dashboard...');
         setSuccess('Login successful! Redirecting...');
 
-        // Set a timeout to reset loading state if auth context doesn&apos;t handle it
+        // Set a timeout to reset loading state if auth context doesn't handle it
         setTimeout(() => {
           setLoading(false);
-        }, 5000);
+        }, 3000); // Extended timeout to account for redirect delay
       }
     } catch {
       setError('An unexpected error occurred');

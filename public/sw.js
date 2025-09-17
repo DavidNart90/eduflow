@@ -1,9 +1,11 @@
 // EduFlow PWA Service Worker
-// Version 1.0 - Modern caching strategies for optimal performance
+// Version 2.2 - Auto-updating cache management for seamless updates
 
-const STATIC_CACHE = 'eduflow-static-v1';
-const DYNAMIC_CACHE = 'eduflow-dynamic-v1';
-const API_CACHE = 'eduflow-api-v1';
+// Dynamic cache versioning based on build time
+const CACHE_VERSION = Date.now().toString();
+const STATIC_CACHE = `eduflow-static-v${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `eduflow-dynamic-v${CACHE_VERSION}`;
+const API_CACHE = `eduflow-api-v${CACHE_VERSION}`;
 
 // Files to cache on install
 const STATIC_ASSETS = [
@@ -15,47 +17,63 @@ const STATIC_ASSETS = [
   // Add your key static assets here
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets and force immediate activation
 self.addEventListener('install', event => {
-  // Installing service worker...
+  // eslint-disable-next-line no-console
+  console.log(`SW installing: ${CACHE_VERSION}`);
 
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then(cache => {
-        // Caching static assets
+        // eslint-disable-next-line no-console
+        console.log('Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       }),
-      // Skip waiting to activate immediately
+      // Force immediate activation to replace old service worker
       self.skipWaiting(),
     ])
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and take immediate control
 self.addEventListener('activate', event => {
-  // Activating service worker...
+  // eslint-disable-next-line no-console
+  console.log(`SW activating: ${CACHE_VERSION}`);
 
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
+      // Clean up ALL old caches aggressively
       caches.keys().then(cacheNames => {
+        const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE];
+        const cachesToDelete = cacheNames.filter(cacheName => {
+          // Delete any cache that doesn't match current version
+          return (
+            !currentCaches.includes(cacheName) &&
+            cacheName.startsWith('eduflow-')
+          );
+        });
+
+        // eslint-disable-next-line no-console
+        console.log('Deleting old caches:', cachesToDelete);
         return Promise.all(
-          cacheNames
-            .filter(cacheName => {
-              return (
-                cacheName !== STATIC_CACHE &&
-                cacheName !== DYNAMIC_CACHE &&
-                cacheName !== API_CACHE
-              );
-            })
-            .map(cacheName => {
-              // Deleting old cache
-              return caches.delete(cacheName);
-            })
+          cachesToDelete.map(cacheName => caches.delete(cacheName))
         );
       }),
-      // Take control of all pages
-      self.clients.claim(),
+      // Take immediate control of all clients (force reload)
+      self.clients.claim().then(() => {
+        // eslint-disable-next-line no-console
+        console.log('SW claimed all clients');
+        // Notify all clients about the update
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'SW_UPDATED',
+              version: CACHE_VERSION,
+              message: 'Service Worker updated successfully',
+            });
+          });
+        });
+      }),
     ])
   );
 });
@@ -178,28 +196,35 @@ async function handleApiRequest(request) {
   }
 }
 
-// Handle navigation requests with cache-first strategy
+// Handle navigation requests with network-first strategy for better updates
 async function handleNavigationRequest(request) {
   const cache = await caches.open(STATIC_CACHE);
 
   try {
-    // Check cache first
-    const cachedResponse = await cache.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
+    // Try network first to get fresh content
+    const networkResponse = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Network timeout')), 3000)
+      ),
+    ]);
 
-    // Try network
-    const networkResponse = await fetch(request);
     if (networkResponse.ok) {
-      // Cache the response
+      // Cache the fresh response
       await cache.put(request, networkResponse.clone());
       return networkResponse;
     }
 
     throw new Error('Network response not ok');
   } catch {
-    // Navigation request failed, serving offline page
+    // eslint-disable-next-line no-console
+    console.log('Network failed for navigation, trying cache');
+
+    // Network failed, check cache
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
 
     // Serve offline page
     const offlineResponse = await cache.match('/offline');
