@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context-simple';
 import { ThemeProvider } from '@/lib/theme-context';
 import { ErrorBoundary } from '@/components/ui';
+import ToastContainer from '@/components/ui/ToastContainer';
 
 export const metadata: Metadata = {
   title: "Eduflow - Teachers' Savings Association",
@@ -107,18 +108,30 @@ export default function RootLayout({
                         console.log('SW registered: ', registration);
                       }
                       
-                      // Handle updates
+                      // Handle updates with better UX
                       registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         if (newWorker) {
                           newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                              // New version available
-                              if (confirm('New version available. Reload to update?')) {
-                                window.location.reload();
+                              // New version available - post message to main thread for toast notification
+                              if (window.dispatchEvent) {
+                                window.dispatchEvent(new CustomEvent('sw-update-available', {
+                                  detail: { registration, newWorker }
+                                }));
                               }
                             }
                           });
+                        }
+                      });
+
+                      // Listen for service worker messages
+                      navigator.serviceWorker.addEventListener('message', (event) => {
+                        if (event.data && event.data.type === 'SW_UPDATED') {
+                          // Service worker updated successfully - show simple notification
+                          if (typeof console !== 'undefined' && console.log) {
+                            console.log('Service worker updated successfully:', event.data.message);
+                          }
                         }
                       });
                     })
@@ -159,6 +172,9 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>
+        <div suppressHydrationWarning={true}>
+          <ToastContainer />
+        </div>
       </body>
     </html>
   );

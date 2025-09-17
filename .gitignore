@@ -223,3 +223,14 @@ test-sql-functions.js
 .env.local.example
 .env.example.local
 .env.example
+
+# Claude files
+.claude/
+.claude/*
+.claude/**/*
+.claude/**/*
+.claude/**/**/*
+.playwright-mcp/
+.playwright-mcp/**/*
+.playwright-mcp/**/**/*
+.playwright-mcp/*

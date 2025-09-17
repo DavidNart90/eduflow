@@ -48,6 +48,34 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to determine role based on email/employee ID
+const detectUserRole = (email: string): 'admin' | 'teacher' => {
+  // Check if email indicates admin role
+  if (
+    email.toLowerCase().includes('admin') ||
+    email.toLowerCase().startsWith('admin001@') ||
+    email.toLowerCase() === 'admin@eduflow.com' ||
+    email.toLowerCase() === 'txr@intrepidhousingsolutions.com'
+  ) {
+    return 'admin';
+  }
+
+  // Extract potential employee ID from email
+  const emailPrefix = email.split('@')[0].toUpperCase();
+
+  // Check if email prefix matches admin employee ID pattern
+  if (
+    emailPrefix === 'ADMIN001' ||
+    emailPrefix.startsWith('ADMIN') ||
+    emailPrefix === 'TXR'
+  ) {
+    return 'admin';
+  }
+
+  // Default to teacher for all other cases
+  return 'teacher';
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -177,13 +205,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Profile fetch failed, creating fallback user:', error);
 
         // Always create fallback user when profile fetch fails
+        const detectedRole = detectUserRole(email);
+        const emailPrefix = email.split('@')[0];
+
         const basicUser: AuthUser = {
           id: userId,
           email,
-          full_name: email.split('@')[0] || 'User',
-          role: 'teacher',
-          employee_id: 'PENDING',
-          management_unit: 'Demo Unit',
+          full_name: emailPrefix || 'User',
+          role: detectedRole,
+          employee_id: emailPrefix.toUpperCase(),
+          management_unit:
+            detectedRole === 'admin' ? 'Administration' : 'Demo Unit',
         };
 
         setUser(basicUser);
@@ -397,13 +429,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     'Profile fetch timeout in auth state change - creating fallback'
                   );
                   // Create fallback user immediately
+                  const detectedRole = detectUserRole(newSession.user.email!);
+                  const emailPrefix = newSession.user.email!.split('@')[0];
+
                   const fallbackUser: AuthUser = {
                     id: newSession.user.id,
                     email: newSession.user.email!,
-                    full_name: newSession.user.email!.split('@')[0] || 'User',
-                    role: 'teacher',
-                    employee_id: 'PENDING',
-                    management_unit: 'Demo Unit',
+                    full_name: emailPrefix || 'User',
+                    role: detectedRole,
+                    employee_id: emailPrefix.toUpperCase(),
+                    management_unit:
+                      detectedRole === 'admin' ? 'Administration' : 'Demo Unit',
                   };
                   setUser(fallbackUser);
                   profileCache.current[newSession.user.id] = fallbackUser;
@@ -416,13 +452,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // eslint-disable-next-line no-console
           console.warn('Profile fetch error in auth state change:', error);
           // Create fallback user on any error
+          const detectedRole = detectUserRole(newSession.user.email!);
+          const emailPrefix = newSession.user.email!.split('@')[0];
+
           const fallbackUser: AuthUser = {
             id: newSession.user.id,
             email: newSession.user.email!,
-            full_name: newSession.user.email!.split('@')[0] || 'User',
-            role: 'teacher',
-            employee_id: 'PENDING',
-            management_unit: 'Demo Unit',
+            full_name: emailPrefix || 'User',
+            role: detectedRole,
+            employee_id: emailPrefix.toUpperCase(),
+            management_unit:
+              detectedRole === 'admin' ? 'Administration' : 'Demo Unit',
           };
           setUser(fallbackUser);
           profileCache.current[newSession.user.id] = fallbackUser;
