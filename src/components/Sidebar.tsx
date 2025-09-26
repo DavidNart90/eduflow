@@ -14,7 +14,7 @@ import {
   UsersIcon,
   DocumentArrowUpIcon,
   ChartBarIcon,
-  EnvelopeIcon,
+  BellIcon,
   PlusIcon,
   CreditCardIcon,
 } from '@heroicons/react/24/outline';
@@ -77,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: CreditCardIcon,
     },
     { name: 'Manage Teachers', href: '/admin/teachers', icon: UsersIcon },
-    { name: 'Email Log', href: '/admin/email-log', icon: EnvelopeIcon },
+    { name: 'Notifications', href: '/admin/email-log', icon: BellIcon },
     { name: 'Account Settings', href: '/admin/settings', icon: Cog6ToothIcon },
   ];
 
@@ -91,6 +91,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: ClockIcon,
     },
     { name: 'Statements', href: '/teacher/statements', icon: DocumentTextIcon },
+    { name: 'Notifications', href: '/teacher/notifications', icon: BellIcon },
     {
       name: 'Account Settings',
       href: '/teacher/settings',

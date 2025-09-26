@@ -143,12 +143,83 @@ export default function AddSavingsPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function to get user ID from auth context or localStorage
+  const getUserId = () => {
+    // First try auth context
+    if (user?.id) {
+      return user.id;
+    }
+
+    // Fallback to localStorage
+    try {
+      const authToken = localStorage.getItem(
+        'sb-stjppbwwddpujltrwmea-auth-token'
+      );
+      if (authToken) {
+        const parsed = JSON.parse(authToken);
+        return parsed.user?.id;
+      }
+
+      const sessionData = localStorage.getItem('eduflow_auth_session');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        return parsed.userId;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Error getting user ID from localStorage:', error);
+    }
+
+    return null;
+  };
+
+  // Helper function to get user email from auth context or localStorage
+  const getUserEmail = () => {
+    // First try auth context
+    if (user?.email) {
+      return user.email;
+    }
+
+    // Fallback to localStorage
+    try {
+      const authToken = localStorage.getItem(
+        'sb-stjppbwwddpujltrwmea-auth-token'
+      );
+      if (authToken) {
+        const parsed = JSON.parse(authToken);
+        return parsed.user?.email;
+      }
+
+      const sessionData = localStorage.getItem('eduflow_auth_session');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        return parsed.email;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Error getting user email from localStorage:', error);
+    }
+
+    return null;
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
       showError('Form Error', 'Please correct the errors below and try again');
+      return;
+    }
+
+    const userId = getUserId();
+    const userEmail = getUserEmail();
+
+    if (!userId) {
+      showError(
+        'Authentication Error',
+        'Unable to identify user. Please try logging out and back in.'
+      );
       return;
     }
 
@@ -167,8 +238,8 @@ export default function AddSavingsPage() {
           phone: phoneNumber,
           network: selectedNetwork,
           metadata: {
-            user_id: user?.id,
-            email: user?.email,
+            user_id: userId,
+            email: userEmail,
           },
         }),
       });

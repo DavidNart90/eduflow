@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
+import { createControllerReportNotification } from '@/lib/notifications';
 
 interface ControllerReportRow {
   employeeNo: string;
@@ -220,6 +221,53 @@ export async function POST(request: NextRequest) {
 
     if (reportError) {
       // Continue anyway, as the transactions were processed
+    }
+
+    // Create notifications for all affected teachers
+    if (result.matchedTeachers.length > 0) {
+      try {
+        // Get user IDs for matched teachers
+        const matchedTeacherNames = result.matchedTeachers.map(t => t.name);
+        const { data: matchedUsers, error: usersError } = await supabaseAdmin
+          .from('users')
+          .select('id, full_name')
+          .eq('role', 'teacher')
+          .in('full_name', matchedTeacherNames);
+
+        if (!usersError && matchedUsers) {
+          const reportPeriod = `${getMonthName(parseInt(month))} ${year}`;
+
+          // Create notifications for each matched teacher
+          for (const matchedUser of matchedUsers) {
+            try {
+              await createControllerReportNotification(
+                matchedUser.id,
+                {
+                  report_period: reportPeriod,
+                  report_id: reportRecord?.id,
+                },
+                user.id
+              );
+              // eslint-disable-next-line no-console
+              console.log(
+                `Created controller report notification for teacher ${matchedUser.full_name}`
+              );
+            } catch (notificationError) {
+              // eslint-disable-next-line no-console
+              console.error(
+                `Failed to create notification for teacher ${matchedUser.full_name}:`,
+                notificationError
+              );
+            }
+          }
+        }
+      } catch (notificationError) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'Failed to create controller report notifications:',
+          notificationError
+        );
+      }
     }
 
     return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
+import { createAdminReportNotification } from '@/lib/notifications';
 
 // GET /api/admin/reports - Get all reports
 export async function GET(request: NextRequest) {
@@ -175,6 +176,31 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create report', details: createError.message },
         { status: 500 }
       );
+    }
+
+    // Create notification for the target user (teacher) about the new report
+    if (teacher_id) {
+      try {
+        await createAdminReportNotification(
+          teacher_id,
+          {
+            report_type: report.report_type,
+            report_period: report.generation_params?.period || 'Current Period',
+            report_id: report.id,
+          },
+          user.id
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+          `Created notification for teacher ${teacher_id} about new report`
+        );
+      } catch (notificationError) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'Failed to create admin report notification:',
+          notificationError
+        );
+      }
     }
 
     return NextResponse.json({

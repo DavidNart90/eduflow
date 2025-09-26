@@ -5,6 +5,7 @@ import {
   type PaystackResponse,
   type PaystackChargeData,
 } from '@/lib/paystack';
+import { createMoMoTransactionNotification } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -103,6 +104,22 @@ export async function GET(req: NextRequest) {
       if (updateError) {
         // eslint-disable-next-line no-console
         console.error('Failed to update transaction:', updateError);
+      } else {
+        // Create notification for successful transaction
+        try {
+          await createMoMoTransactionNotification(transaction.user_id, {
+            amount: paystackTransaction.amount / 100,
+            status: 'completed',
+            transaction_id: transaction.id,
+            reference_id: paystackTransaction.reference,
+          });
+        } catch (notificationError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'Failed to create transaction notification:',
+            notificationError
+          );
+        }
       }
     } else if (
       paystackTransaction.status === 'failed' &&
@@ -127,6 +144,22 @@ export async function GET(req: NextRequest) {
       if (updateError) {
         // eslint-disable-next-line no-console
         console.error('Failed to update failed transaction:', updateError);
+      } else {
+        // Create notification for failed transaction
+        try {
+          await createMoMoTransactionNotification(transaction.user_id, {
+            amount: paystackTransaction.amount / 100,
+            status: 'failed',
+            transaction_id: transaction.id,
+            reference_id: paystackTransaction.reference,
+          });
+        } catch (notificationError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'Failed to create failed transaction notification:',
+            notificationError
+          );
+        }
       }
     }
 

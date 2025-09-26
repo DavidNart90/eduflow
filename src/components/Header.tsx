@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context-simple';
 import { useTheme } from '@/lib/theme-context';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui';
 import { Badge } from '@/components/ui';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ import {
   SunIcon,
   MoonIcon,
   Cog6ToothIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 interface HeaderProps {
@@ -20,6 +22,12 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  // Get notification summary for header badge
+  const { summary } = useNotifications({
+    autoRefresh: true,
+    refreshInterval: 30000, // Refresh every 30 seconds
+  });
 
   const getInitials = (name: string) => {
     if (!name) return 'U';
@@ -77,6 +85,33 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               <MoonIcon className='h-5 w-5' />
             )}
           </Button>
+
+          {/* Notifications */}
+          <Link
+            href={
+              user.role === 'admin'
+                ? '/admin/email-log'
+                : '/teacher/notifications'
+            }
+          >
+            <Button
+              variant='ghost'
+              size='sm'
+              className='relative hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary-foreground'
+            >
+              <BellIcon className='h-5 w-5' />
+              {/* Notification badge with unread count */}
+              {summary.unread_count > 0 && (
+                <Badge
+                  variant='error'
+                  size='sm'
+                  className='absolute -top-1 -right-1 min-w-[1.125rem] h-[1.125rem] flex items-center justify-center text-xs font-bold bg-red-500 text-white border-2 border-white dark:border-gray-900 rounded-full'
+                >
+                  {summary.unread_count > 99 ? '99+' : summary.unread_count}
+                </Badge>
+              )}
+            </Button>
+          </Link>
 
           {/* Settings */}
           <Link
