@@ -280,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               id: storedInfo.userId,
               email: storedInfo.email,
               full_name: storedInfo.email.split('@')[0] || 'User',
-              role: 'teacher',
+              role: detectUserRole(storedInfo.email),
               employee_id: 'PENDING',
               management_unit: 'Demo Unit',
             };
@@ -314,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       email: initialSession.user.email!,
                       full_name:
                         initialSession.user.email!.split('@')[0] || 'User',
-                      role: 'teacher',
+                      role: detectUserRole(initialSession.user.email!),
                       employee_id: 'PENDING',
                       management_unit: 'Demo Unit',
                     };
@@ -546,7 +546,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: data.user.id,
           email: data.user.email!,
           full_name: data.user.email!.split('@')[0],
-          role: 'teacher' as const,
+          role: detectUserRole(data.user.email!),
           employee_id: 'PENDING',
           management_unit: 'Demo Unit',
         };
