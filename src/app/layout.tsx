@@ -4,6 +4,11 @@ import { AuthProvider } from '@/lib/auth-context-simple';
 import { ThemeProvider } from '@/lib/theme-context';
 import { ErrorBoundary } from '@/components/ui';
 import ToastContainer from '@/components/ui/ToastContainer';
+import {
+  PWAUpdateNotification,
+  PWAInstallPrompt,
+} from '@/components/PWAComponents';
+import ServiceWorkerUpdatesProvider from '@/components/ServiceWorkerUpdatesProvider';
 
 export const metadata: Metadata = {
   title: "Eduflow - Teachers' Savings Association",
@@ -128,9 +133,13 @@ export default function RootLayout({
                       // Listen for service worker messages
                       navigator.serviceWorker.addEventListener('message', (event) => {
                         if (event.data && event.data.type === 'SW_UPDATED') {
-                          // Service worker updated successfully - show simple notification
-                          if (typeof console !== 'undefined' && console.log) {
-                            console.log('Service worker updated successfully:', event.data.message);
+                          // Service worker updated successfully - dispatch custom event for UI notification
+                          if (window.dispatchEvent) {
+                            window.dispatchEvent(new CustomEvent('sw-updated', {
+                              detail: {
+                                message: event.data.message || 'App has been updated to the latest version.'
+                              }
+                            }));
                           }
                         }
                       });
@@ -174,6 +183,9 @@ export default function RootLayout({
         </ErrorBoundary>
         <div suppressHydrationWarning={true}>
           <ToastContainer />
+          <PWAUpdateNotification />
+          <PWAInstallPrompt />
+          <ServiceWorkerUpdatesProvider />
         </div>
       </body>
     </html>
