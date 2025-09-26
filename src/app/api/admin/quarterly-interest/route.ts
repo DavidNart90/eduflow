@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '../../../../lib/supabase';
+import { createInterestPaymentNotification } from '@/lib/notifications';
 
 interface TeacherData {
   teacher_id: string;
@@ -318,6 +319,54 @@ export async function POST(request: NextRequest) {
           .select('*')
           .eq('id', paymentId)
           .single();
+
+        // Create notifications for teachers who received interest payments
+        try {
+          const { data: teacherCalculations, error: calcError } =
+            await supabaseAdmin
+              .from('teacher_interest_calculations')
+              .select(
+                `
+              teacher_id,
+              calculated_interest,
+              balance_after_interest,
+              users!inner(full_name)
+            `
+              )
+              .eq('interest_payment_id', paymentId);
+
+          if (!calcError && teacherCalculations) {
+            // Create notifications for each teacher
+            const notificationPromises = teacherCalculations.map(
+              (calc: {
+                teacher_id: string;
+                calculated_interest: number;
+                balance_after_interest: number;
+                users: { full_name: string };
+              }) =>
+                createInterestPaymentNotification(
+                  calc.teacher_id,
+                  {
+                    amount: parseFloat(calc.calculated_interest.toString()),
+                    payment_period:
+                      payment_period || `Q${payment_quarter}-${payment_year}`,
+                    new_balance: parseFloat(
+                      calc.balance_after_interest.toString()
+                    ),
+                  },
+                  user.id
+                )
+            );
+
+            await Promise.allSettled(notificationPromises);
+          }
+        } catch (notificationError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'Failed to create interest payment notifications:',
+            notificationError
+          );
+        }
 
         return NextResponse.json({
           success: true,
