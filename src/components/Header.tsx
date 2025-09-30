@@ -23,11 +23,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  // Get notification summary for header badge
-  const { summary } = useNotifications({
-    autoRefresh: true,
-    refreshInterval: 30000, // Refresh every 30 seconds
-  });
+  // Get notification summary for header badge - completely manual, no auto-refresh
+  const { summary } = useNotifications();
 
   const getInitials = (name: string) => {
     if (!name) return 'U';

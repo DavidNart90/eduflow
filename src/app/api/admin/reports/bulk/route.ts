@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
+import {
+  createAdminReportNotification,
+  createAdminReportGenerationNotification,
+  getAdminUserIds,
+} from '@/lib/notifications';
 
 // POST /api/admin/reports/bulk - Generate reports for multiple teachers
 export async function POST(request: NextRequest) {
@@ -98,6 +103,62 @@ export async function POST(request: NextRequest) {
       p_status: 'processing',
       p_progress_percentage: 0,
     });
+
+    // Create notifications for affected teachers and admins
+    // Note: In a real async system, these would be sent after actual completion
+    try {
+      const reportPeriod =
+        start_date && end_date
+          ? `${new Date(start_date).toLocaleDateString('en-GB')} - ${new Date(end_date).toLocaleDateString('en-GB')}`
+          : 'All Time';
+
+      // Notify each teacher about their report
+      const teacherNotificationPromises = teacher_ids.map((teacherId: string) =>
+        createAdminReportNotification(
+          teacherId,
+          {
+            report_type: 'Financial Statement',
+            report_period: reportPeriod,
+            report_id: job.id,
+          },
+          undefined
+        )
+      );
+
+      await Promise.allSettled(teacherNotificationPromises);
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `Created ${teacher_ids.length} report notifications for teachers`
+      );
+
+      // Notify all admins about bulk generation
+      const adminIds = await getAdminUserIds();
+      const adminNotificationPromises = adminIds.map(adminId =>
+        createAdminReportGenerationNotification(
+          adminId,
+          {
+            report_period: reportPeriod,
+            teachers_count: teacher_ids.length,
+            report_id: job.id,
+          },
+          undefined
+        )
+      );
+
+      await Promise.allSettled(adminNotificationPromises);
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `Created admin notifications for bulk report generation (${teacher_ids.length} teachers)`
+      );
+    } catch (notificationError) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'Failed to create bulk report notifications:',
+        notificationError
+      );
+    }
 
     return NextResponse.json({
       success: true,

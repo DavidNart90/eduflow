@@ -33,7 +33,7 @@ export const useNotificationToasts = (
   options: UseNotificationToastsOptions = {}
 ) => {
   const {
-    enabled = true,
+    enabled = false, // Changed default to false - no auto-polling
     pollingInterval = 30000, // 30 seconds
     showOnlyNewNotifications = true,
   } = options;
@@ -41,14 +41,23 @@ export const useNotificationToasts = (
   const { user } = useAuth();
   const { addToast } = useToast();
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
+  const lastCheckedRef = useRef<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const seenNotificationIds = useRef<Set<string>>(new Set());
+  const isMountedRef = useRef(true);
+  const checkFnRef = useRef<(() => Promise<void>) | null>(null);
+
+  const stopPollingRef = useRef<(() => void) | null>(null);
+
+  stopPollingRef.current = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
 
   const checkForNewNotifications = useCallback(async () => {
-    if (!user || !enabled || isPolling) return;
-
-    setIsPolling(true);
+    if (!user || !enabled || !isMountedRef.current) return;
 
     try {
       const params = new URLSearchParams({
@@ -57,8 +66,8 @@ export const useNotificationToasts = (
         is_read: 'false', // Only get unread notifications
       });
 
-      if (lastChecked && showOnlyNewNotifications) {
-        params.append('created_after', lastChecked.toISOString());
+      if (lastCheckedRef.current && showOnlyNewNotifications) {
+        params.append('created_after', lastCheckedRef.current.toISOString());
       }
 
       const response = await fetch(`/api/notifications?${params.toString()}`, {
@@ -66,6 +75,16 @@ export const useNotificationToasts = (
           Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
         },
       });
+
+      // Stop polling if unauthorized or forbidden
+      if (response.status === 401 || response.status === 403) {
+        // eslint-disable-next-line no-console
+        console.warn('Authentication failed, stopping notification polling');
+        if (stopPollingRef.current) {
+          stopPollingRef.current();
+        }
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -89,22 +108,18 @@ export const useNotificationToasts = (
           });
         });
 
-        setLastChecked(new Date());
+        const now = new Date();
+        lastCheckedRef.current = now;
+        setLastChecked(now);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Error checking for new notifications:', error);
-    } finally {
-      setIsPolling(false);
     }
-  }, [
-    user,
-    enabled,
-    isPolling,
-    lastChecked,
-    showOnlyNewNotifications,
-    addToast,
-  ]);
+  }, [user, enabled, showOnlyNewNotifications, addToast]);
+
+  // Keep ref updated with latest callback
+  checkFnRef.current = checkForNewNotifications;
 
   const getToastType = (notificationType: string, priority: string) => {
     if (priority === 'urgent') return 'error';
@@ -146,40 +161,74 @@ export const useNotificationToasts = (
 
   // Start polling when component mounts and user is authenticated
   useEffect(() => {
-    if (!user || !enabled) return undefined;
+    // STRICTLY prevent any polling when disabled
+    if (!enabled) {
+      // Clear any existing interval immediately
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return undefined;
+    }
 
-    // Initial check
-    checkForNewNotifications();
+    if (!user) {
+      // Clear any existing interval if user logs out
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return undefined;
+    }
 
-    // Set up polling interval
-    intervalRef.current = setInterval(
-      checkForNewNotifications,
-      pollingInterval
-    );
+    // Initial check - use ref to get latest version
+    if (checkFnRef.current) {
+      checkFnRef.current();
+    }
+
+    // Set up polling interval - use ref so it always calls latest version
+    if (!intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        if (checkFnRef.current) {
+          checkFnRef.current();
+        }
+      }, pollingInterval);
+    }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [user, enabled, pollingInterval, checkForNewNotifications]);
+  }, [user, enabled, pollingInterval]);
 
   // Check immediately when user logs in
   useEffect(() => {
     if (user && enabled) {
-      setLastChecked(new Date());
+      const now = new Date();
+      lastCheckedRef.current = now;
+      setLastChecked(now);
       // Clear seen notifications when user changes
       seenNotificationIds.current.clear();
     }
   }, [user, enabled]);
 
+  // Track component mount/unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const startPolling = () => {
     if (intervalRef.current) return;
 
-    intervalRef.current = setInterval(
-      checkForNewNotifications,
-      pollingInterval
-    );
+    intervalRef.current = setInterval(() => {
+      if (checkFnRef.current) {
+        checkFnRef.current();
+      }
+    }, pollingInterval);
   };
 
   const stopPolling = () => {
@@ -190,11 +239,12 @@ export const useNotificationToasts = (
   };
 
   const checkNow = () => {
-    checkForNewNotifications();
+    if (checkFnRef.current) {
+      checkFnRef.current();
+    }
   };
 
   return {
-    isPolling,
     lastChecked,
     checkNow,
     startPolling,

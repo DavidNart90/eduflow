@@ -22,8 +22,6 @@ export default function TeacherNotificationsPage() {
     setPage,
     refresh,
   } = useNotifications({
-    autoRefresh: true,
-    refreshInterval: 30000,
     initialLimit: 20,
   });
 

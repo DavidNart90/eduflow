@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
-import { createControllerReportNotification } from '@/lib/notifications';
+import {
+  createControllerReportNotification,
+  createAdminControllerReportNotification,
+  getAdminUserIds,
+} from '@/lib/notifications';
 
 interface ControllerReportRow {
   employeeNo: string;
@@ -226,7 +230,7 @@ export async function POST(request: NextRequest) {
     // Create notifications for all affected teachers
     if (result.matchedTeachers.length > 0) {
       try {
-        // Get user IDs for matched teachers
+        // Get user IDs for matched teachers with their deduction amounts
         const matchedTeacherNames = result.matchedTeachers.map(t => t.name);
         const { data: matchedUsers, error: usersError } = await supabaseAdmin
           .from('users')
@@ -237,20 +241,26 @@ export async function POST(request: NextRequest) {
         if (!usersError && matchedUsers) {
           const reportPeriod = `${getMonthName(parseInt(month))} ${year}`;
 
-          // Create notifications for each matched teacher
+          // Create notifications for each matched teacher with their deduction amount
           for (const matchedUser of matchedUsers) {
             try {
+              // Find the corresponding teacher data to get the deduction amount
+              const teacherData = result.matchedTeachers.find(
+                t => t.name === matchedUser.full_name
+              );
+
               await createControllerReportNotification(
                 matchedUser.id,
                 {
                   report_period: reportPeriod,
                   report_id: reportRecord?.id,
+                  deduction_amount: teacherData?.amount || 0,
                 },
-                user.id
+                undefined
               );
               // eslint-disable-next-line no-console
               console.log(
-                `Created controller report notification for teacher ${matchedUser.full_name}`
+                `Created controller report notification for teacher ${matchedUser.full_name} with deduction GH¢${teacherData?.amount}`
               );
             } catch (notificationError) {
               // eslint-disable-next-line no-console
@@ -268,6 +278,42 @@ export async function POST(request: NextRequest) {
           notificationError
         );
       }
+    }
+
+    // Notify all admins about successful upload
+    try {
+      const adminIds = await getAdminUserIds();
+      const reportPeriod = `${getMonthName(parseInt(month))} ${year}`;
+
+      for (const adminId of adminIds) {
+        try {
+          await createAdminControllerReportNotification(
+            adminId,
+            {
+              report_period: reportPeriod,
+              affected_teachers: result.matchedRecords,
+              report_id: reportRecord?.id,
+            },
+            user.id
+          );
+          // eslint-disable-next-line no-console
+          console.log(
+            `Created admin notification for controller report affecting ${result.matchedRecords} teachers`
+          );
+        } catch (notificationError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'Failed to create admin notification:',
+            notificationError
+          );
+        }
+      }
+    } catch (notificationError) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'Failed to create admin controller report notifications:',
+        notificationError
+      );
     }
 
     return NextResponse.json({

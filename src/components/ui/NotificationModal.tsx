@@ -371,8 +371,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                     size='sm'
                     onClick={handleMarkAsRead}
                     className='text-blue-600 border-blue-600 hover:bg-blue-50'
+                    icon={<CheckCircleIcon className='h-4 w-4' />}
                   >
-                    <CheckCircleIcon className='h-4 w-4 mr-2' />
                     Mark as Read
                   </Button>
                 )}
@@ -382,9 +382,9 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                     variant='outline'
                     size='sm'
                     onClick={handleDelete}
-                    className='text-red-600 border-red-600 hover:bg-red-50'
+                    className='text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700'
+                    icon={<XMarkIcon className='h-4 w-4' />}
                   >
-                    <XMarkIcon className='h-4 w-4 mr-2' />
                     Delete
                   </Button>
                 )}

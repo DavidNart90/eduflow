@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, supabase } from '../../../../lib/supabase';
-import { createInterestPaymentNotification } from '@/lib/notifications';
+import {
+  createInterestPaymentNotification,
+  createAdminInterestPaymentNotification,
+  getAdminUserIds,
+} from '@/lib/notifications';
 
 interface TeacherData {
   teacher_id: string;
@@ -354,11 +358,60 @@ export async function POST(request: NextRequest) {
                       calc.balance_after_interest.toString()
                     ),
                   },
-                  user.id
+                  undefined
                 )
             );
 
             await Promise.allSettled(notificationPromises);
+
+            // eslint-disable-next-line no-console
+            console.log(
+              `Created ${teacherCalculations.length} interest payment notifications for teachers`
+            );
+
+            // Calculate total interest paid
+            const totalInterest = teacherCalculations.reduce(
+              (
+                sum: number,
+                calc: {
+                  teacher_id: string;
+                  calculated_interest: number;
+                  balance_after_interest: number;
+                  users: { full_name: string };
+                }
+              ) => sum + parseFloat(calc.calculated_interest.toString()),
+              0
+            );
+
+            // Notify all admins about successful interest payment
+            try {
+              const adminIds = await getAdminUserIds();
+              const adminNotificationPromises = adminIds.map(adminId =>
+                createAdminInterestPaymentNotification(
+                  adminId,
+                  {
+                    payment_period:
+                      payment_period || `Q${payment_quarter}-${payment_year}`,
+                    total_amount: totalInterest,
+                    teachers_count: teacherCalculations.length,
+                  },
+                  undefined
+                )
+              );
+
+              await Promise.allSettled(adminNotificationPromises);
+
+              // eslint-disable-next-line no-console
+              console.log(
+                `Created admin notifications for interest payment: GH¢${totalInterest.toFixed(2)} to ${teacherCalculations.length} teachers`
+              );
+            } catch (adminNotificationError) {
+              // eslint-disable-next-line no-console
+              console.error(
+                'Failed to create admin interest payment notifications:',
+                adminNotificationError
+              );
+            }
           }
         } catch (notificationError) {
           // eslint-disable-next-line no-console

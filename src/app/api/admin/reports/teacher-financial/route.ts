@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { TeacherFinancialReportPDF } from '@/lib/reports/teacher-financial-pdf';
+import { createAdminReportNotification } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -153,6 +154,35 @@ export async function POST(request: NextRequest) {
       }
     } catch {
       // Don't fail the request if logging fails
+    }
+
+    // Create notifications for teacher and admins
+    try {
+      const reportPeriod =
+        start_date && end_date
+          ? `${new Date(start_date).toLocaleDateString('en-GB')} - ${new Date(end_date).toLocaleDateString('en-GB')}`
+          : 'All Time';
+
+      // Notify the teacher about the report
+      await createAdminReportNotification(
+        teacher_id,
+        {
+          report_type: 'Financial Statement',
+          report_period: reportPeriod,
+          report_id: reportId || undefined,
+        },
+        undefined
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `Created report notification for teacher ${teacher.full_name}`
+      );
+    } catch (notificationError) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'Failed to create report generation notifications:',
+        notificationError
+      );
     }
 
     // Return success response with detailed report information

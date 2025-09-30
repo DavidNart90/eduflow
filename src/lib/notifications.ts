@@ -141,7 +141,7 @@ export function createMoMoTransactionNotification(
 }
 
 /**
- * Create notification for admin-generated report
+ * Create notification for admin-generated report (for teachers)
  */
 export function createAdminReportNotification(
   userId: string,
@@ -155,7 +155,7 @@ export function createAdminReportNotification(
   return createNotificationFromTemplate({
     user_id: userId,
     type: 'admin_report',
-    template_name: 'report_generated',
+    template_name: 'report_ready_teacher',
     variables: {
       report_type: reportData.report_type,
       report_period: reportData.report_period,
@@ -167,12 +167,65 @@ export function createAdminReportNotification(
 }
 
 /**
- * Create notification for controller report processing
+ * Create notification for admin about successful report generation
+ */
+export function createAdminReportGenerationNotification(
+  userId: string,
+  reportData: {
+    report_period: string;
+    teachers_count: number;
+    report_id?: string;
+  },
+  createdBy?: string
+): Promise<string | null> {
+  return createNotificationFromTemplate({
+    user_id: userId,
+    type: 'admin_report',
+    template_name: 'report_generation_success',
+    variables: {
+      report_period: reportData.report_period,
+      teachers_count: reportData.teachers_count.toString(),
+      report_id: reportData.report_id || '',
+    },
+    priority: 'normal',
+    created_by: createdBy,
+  });
+}
+
+/**
+ * Create notification for controller report processing (for teachers)
  */
 export function createControllerReportNotification(
   userId: string,
   reportData: {
     report_period: string;
+    report_id?: string;
+    deduction_amount?: number;
+  },
+  createdBy?: string
+): Promise<string | null> {
+  return createNotificationFromTemplate({
+    user_id: userId,
+    type: 'controller_report',
+    template_name: 'controller_deduction',
+    variables: {
+      report_period: reportData.report_period,
+      report_id: reportData.report_id || '',
+      deduction_amount: reportData.deduction_amount?.toFixed(2) || '0.00',
+    },
+    priority: 'normal',
+    created_by: createdBy,
+  });
+}
+
+/**
+ * Create notification for admin about controller report upload
+ */
+export function createAdminControllerReportNotification(
+  userId: string,
+  reportData: {
+    report_period: string;
+    affected_teachers: number;
     report_id?: string;
   },
   createdBy?: string
@@ -180,9 +233,10 @@ export function createControllerReportNotification(
   return createNotificationFromTemplate({
     user_id: userId,
     type: 'controller_report',
-    template_name: 'report_uploaded',
+    template_name: 'controller_upload_success',
     variables: {
       report_period: reportData.report_period,
+      affected_teachers: reportData.affected_teachers.toString(),
       report_id: reportData.report_id || '',
     },
     priority: 'normal',
@@ -215,7 +269,7 @@ export function createAppUpdateNotification(
 }
 
 /**
- * Create notification for interest payment
+ * Create notification for interest payment (for teachers)
  */
 export function createInterestPaymentNotification(
   userId: string,
@@ -229,11 +283,37 @@ export function createInterestPaymentNotification(
   return createNotificationFromTemplate({
     user_id: userId,
     type: 'interest_payment',
-    template_name: 'quarterly_interest',
+    template_name: 'quarterly_interest_teacher',
     variables: {
       amount: interestData.amount.toFixed(2),
       payment_period: interestData.payment_period,
       new_balance: interestData.new_balance.toFixed(2),
+    },
+    priority: 'normal',
+    created_by: createdBy,
+  });
+}
+
+/**
+ * Create notification for admin about interest payment completion
+ */
+export function createAdminInterestPaymentNotification(
+  userId: string,
+  interestData: {
+    payment_period: string;
+    total_amount: number;
+    teachers_count: number;
+  },
+  createdBy?: string
+): Promise<string | null> {
+  return createNotificationFromTemplate({
+    user_id: userId,
+    type: 'interest_payment',
+    template_name: 'quarterly_interest_admin',
+    variables: {
+      payment_period: interestData.payment_period,
+      total_amount: interestData.total_amount.toFixed(2),
+      teachers_count: interestData.teachers_count.toString(),
     },
     priority: 'normal',
     created_by: createdBy,

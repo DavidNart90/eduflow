@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context-simple';
 
 interface NotificationData {
   id: string;
@@ -38,8 +38,6 @@ interface NotificationPagination {
 }
 
 interface UseNotificationsOptions {
-  autoRefresh?: boolean;
-  refreshInterval?: number;
   initialPage?: number;
   initialLimit?: number;
 }
@@ -62,12 +60,9 @@ interface UseNotificationsReturn {
 export function useNotifications(
   options: UseNotificationsOptions = {}
 ): UseNotificationsReturn {
-  const {
-    autoRefresh = false,
-    refreshInterval = 30000, // 30 seconds
-    initialPage = 1,
-    initialLimit = 20,
-  } = options;
+  const { initialPage = 1, initialLimit = 20 } = options;
+
+  const { session } = useAuth(); // Get session like useTeacherReports
 
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [summary, setSummary] = useState<NotificationSummary>({
@@ -84,28 +79,16 @@ export function useNotifications(
   const [filters, setFiltersState] = useState<NotificationFilters>({});
   const [page, setPageState] = useState(initialPage);
 
-  // Get auth token for API calls
-  const getAuthToken = useCallback(async (): Promise<string | null> => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session?.access_token || null;
-    } catch {
-      return null;
-    }
-  }, []);
-
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
+    if (!session?.access_token) {
+      setError('No authentication token available');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('No authentication token');
-      }
 
       // Build query parameters
       const params = new URLSearchParams({
@@ -121,7 +104,7 @@ export function useNotifications(
 
       const response = await fetch(`/api/notifications?${params}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -143,41 +126,69 @@ export function useNotifications(
     } finally {
       setLoading(false);
     }
-  }, [page, initialLimit, filters, getAuthToken]);
+  }, [page, initialLimit, filters, session?.access_token]);
 
   // Fetch notification summary
   const fetchSummary = useCallback(async () => {
-    try {
-      const token = await getAuthToken();
-      if (!token) return;
+    if (!session?.access_token) {
+      // Reset summary when no auth token
+      setSummary({
+        total_count: 0,
+        unread_count: 0,
+        high_priority_unread: 0,
+        recent_count: 0,
+      });
+      return;
+    }
 
+    try {
       const response = await fetch('/api/notifications/summary', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSummary(data.summary || summary);
+        setSummary(
+          data.summary || {
+            total_count: 0,
+            unread_count: 0,
+            high_priority_unread: 0,
+            recent_count: 0,
+          }
+        );
+      } else if (response.status === 401) {
+        // Handle auth errors by resetting summary
+        setSummary({
+          total_count: 0,
+          unread_count: 0,
+          high_priority_unread: 0,
+          recent_count: 0,
+        });
       }
     } catch {
       // Silently fail for summary - not critical
+      setSummary({
+        total_count: 0,
+        unread_count: 0,
+        high_priority_unread: 0,
+        recent_count: 0,
+      });
     }
-  }, [getAuthToken, summary]);
+  }, [session?.access_token]);
 
   // Mark notification as read
   const markAsRead = useCallback(
     async (id: string): Promise<boolean> => {
-      try {
-        const token = await getAuthToken();
-        if (!token) return false;
+      if (!session?.access_token) return false;
 
+      try {
         const response = await fetch(`/api/notifications/${id}`, {
           method: 'PATCH',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -210,19 +221,18 @@ export function useNotifications(
         return false;
       }
     },
-    [getAuthToken]
+    [session?.access_token]
   );
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async (): Promise<boolean> => {
-    try {
-      const token = await getAuthToken();
-      if (!token) return false;
+    if (!session?.access_token) return false;
 
+    try {
       const response = await fetch('/api/notifications/mark-all-read', {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -253,19 +263,18 @@ export function useNotifications(
     } catch {
       return false;
     }
-  }, [getAuthToken]);
+  }, [session?.access_token]);
 
   // Delete notification
   const deleteNotification = useCallback(
     async (id: string): Promise<boolean> => {
-      try {
-        const token = await getAuthToken();
-        if (!token) return false;
+      if (!session?.access_token) return false;
 
+      try {
         const response = await fetch(`/api/notifications/${id}`, {
           method: 'DELETE',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -290,7 +299,7 @@ export function useNotifications(
         return false;
       }
     },
-    [getAuthToken]
+    [session?.access_token]
   );
 
   // Set filters
@@ -310,25 +319,25 @@ export function useNotifications(
     fetchSummary();
   }, [fetchNotifications, fetchSummary]);
 
-  // Initial load and when dependencies change
+  // Initial load - only fetch once when needed, same pattern as useTeacherReports
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    let isMounted = true;
 
-  useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
+    // Only fetch if we have a session, no data yet, and component is mounted
+    if (session?.access_token && notifications.length === 0 && isMounted) {
+      fetchNotifications();
+      fetchSummary(); // Also fetch summary on initial load
+    }
 
-  // Auto-refresh
-  useEffect(() => {
-    if (!autoRefresh) return undefined;
-
-    const interval = setInterval(() => {
-      fetchSummary(); // Only refresh summary for auto-refresh to avoid disrupting user
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, fetchSummary]);
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    session?.access_token,
+    fetchNotifications,
+    fetchSummary,
+    notifications.length,
+  ]);
 
   return {
     notifications,
