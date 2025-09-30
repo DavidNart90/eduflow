@@ -22,8 +22,6 @@ export default function NotificationsPage() {
     setPage,
     refresh,
   } = useNotifications({
-    autoRefresh: true,
-    refreshInterval: 30000, // 30 seconds
     initialLimit: 20,
   });
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context-simple';
 import { useAppStore } from '@/lib/stores';
-import { useNotificationToasts } from '@/hooks/useNotificationToasts';
+// import { useNotificationToasts } from '@/hooks/useNotificationToasts'; // DISABLED - no auto polling
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Breadcrumbs from './Breadcrumbs';
@@ -18,12 +18,11 @@ export default function Layout({ children }: LayoutProps) {
   const { error, clearError } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Enable real-time notification toasts when user is authenticated
-  useNotificationToasts({
-    enabled: Boolean(user),
-    pollingInterval: 30000, // Check every 30 seconds
-    showOnlyNewNotifications: true,
-  });
+  // REMOVED: useNotificationToasts - completely disabled to prevent auto-polling
+  // useNotificationToasts({
+  //   enabled: false, // Disable automatic polling
+  //   showOnlyNewNotifications: true,
+  // });
 
   if (loading) {
     return (

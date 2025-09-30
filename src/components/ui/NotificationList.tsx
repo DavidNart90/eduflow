@@ -195,7 +195,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             </div>
             <div>
               <p className='text-sm text-gray-600 dark:text-gray-400'>Total</p>
-              <p className='text-xl font-bold'>{summary.total_count}</p>
+              {loading ? (
+                <MuiSkeletonComponent width={40} height={28} />
+              ) : (
+                <p className='text-xl font-bold'>{summary.total_count}</p>
+              )}
             </div>
           </div>
         </Card>
@@ -207,7 +211,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             </div>
             <div>
               <p className='text-sm text-gray-600 dark:text-gray-400'>Unread</p>
-              <p className='text-xl font-bold'>{summary.unread_count}</p>
+              {loading ? (
+                <MuiSkeletonComponent width={40} height={28} />
+              ) : (
+                <p className='text-xl font-bold'>{summary.unread_count}</p>
+              )}
             </div>
           </div>
         </Card>
@@ -221,9 +229,13 @@ export const NotificationList: React.FC<NotificationListProps> = ({
               <p className='text-sm text-gray-600 dark:text-gray-400'>
                 High Priority
               </p>
-              <p className='text-xl font-bold'>
-                {summary.high_priority_unread}
-              </p>
+              {loading ? (
+                <MuiSkeletonComponent width={40} height={28} />
+              ) : (
+                <p className='text-xl font-bold'>
+                  {summary.high_priority_unread}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -235,7 +247,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             </div>
             <div>
               <p className='text-sm text-gray-600 dark:text-gray-400'>Recent</p>
-              <p className='text-xl font-bold'>{summary.recent_count}</p>
+              {loading ? (
+                <MuiSkeletonComponent width={40} height={28} />
+              ) : (
+                <p className='text-xl font-bold'>{summary.recent_count}</p>
+              )}
             </div>
           </div>
         </Card>
@@ -294,14 +310,14 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
           {onMarkAllAsRead && summary.unread_count > 0 && (
             <Button variant='primary' onClick={onMarkAllAsRead} size='sm'>
-              <CheckIcon className='h-4 w-4 mr-2' />
+              <CheckIcon className='h-4 w-4' />
               Mark All Read ({summary.unread_count})
             </Button>
           )}
 
           {onRefresh && (
             <Button variant='ghost' onClick={onRefresh} size='sm'>
-              <ArrowPathIcon className='h-4 w-4 mr-2' />
+              <ArrowPathIcon className='h-4 w-4' />
               Refresh
             </Button>
           )}
